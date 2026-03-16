@@ -28,7 +28,7 @@ class FakeWeatherRepository : WeatherRepository {
         it.id in setOf("oradea", "bucharest", "cluj", "london", "tokyo")
     }
 
-    override fun searchCities(query: String): List<CityOption> {
+    override suspend fun searchCities(query: String): List<CityOption> {
         if (query.isBlank()) return favoriteCities() + cities.filter { !it.isDefault }.take(4)
 
         val normalizedQuery = query.trim().lowercase()
@@ -39,7 +39,7 @@ class FakeWeatherRepository : WeatherRepository {
         }
     }
 
-    override fun weatherFor(city: CityOption): WeatherOverview {
+    override suspend fun weatherFor(city: CityOption): WeatherOverview {
         val seed = weatherSeeds[city.id] ?: weatherSeeds.getValue(defaultCity().id)
         return seed.toOverview(city)
     }

@@ -11,5 +11,5 @@ data class CityOption(
     val isDefault: Boolean = false,
 ) {
     val subtitle: String
-        get() = "$region, $country"
+        get() = if (region.isBlank() || region == country) country else "$region, $country"
 }

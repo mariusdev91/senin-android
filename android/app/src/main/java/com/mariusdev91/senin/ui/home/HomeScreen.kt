@@ -24,17 +24,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Air
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Foggy
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.ModeNight
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Thunderstorm
 import androidx.compose.material.icons.rounded.Umbrella
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -61,12 +64,14 @@ import com.mariusdev91.senin.model.CityOption
 import com.mariusdev91.senin.model.DailyForecast
 import com.mariusdev91.senin.model.HourlyForecast
 import com.mariusdev91.senin.model.WeatherCondition
+import com.mariusdev91.senin.model.WeatherOverview
 
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
     onQueryChange: (String) -> Unit,
     onCitySelected: (CityOption) -> Unit,
+    onRetry: () -> Unit,
 ) {
     var showCityPicker by remember { mutableStateOf(false) }
 
@@ -86,23 +91,31 @@ fun HomeScreen(
                     onPickCity = { showCityPicker = true },
                 )
             }
-            item { HeroCard(uiState = uiState) }
-            item { MetricsRow(uiState = uiState) }
-            item { SectionTitle("Ritmul de azi") }
-            item { HourlySection(hourly = uiState.weather.hourly) }
-            item { SectionTitle("Urmatoarele zile") }
-
-            items(uiState.weather.daily) { day ->
-                DailyForecastCard(day = day)
-            }
 
             item {
-                Text(
-                    text = uiState.weather.sourceLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
-                    modifier = Modifier.padding(top = 4.dp),
+                HeroCard(
+                    uiState = uiState,
+                    onRetry = onRetry,
                 )
+            }
+
+            uiState.weather?.let { weather ->
+                item { MetricsRow(weather = weather) }
+                item { SectionTitle("Ritmul de azi") }
+                item { HourlySection(hourly = weather.hourly) }
+                item { SectionTitle("Urmatoarele zile") }
+
+                items(weather.daily) { day ->
+                    DailyForecastCard(day = day)
+                }
+
+                item {
+                    Text(
+                        text = weather.sourceLabel,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.7f),
+                    )
+                }
             }
         }
 
@@ -142,10 +155,7 @@ private fun AtmosphereBackground() {
 
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color(0xFFFFF1C7).copy(alpha = 0.85f),
-                        Color.Transparent,
-                    ),
+                    colors = listOf(Color(0xFFFFF1C7).copy(alpha = 0.85f), Color.Transparent),
                     center = sunriseCenter,
                     radius = size.minDimension * 0.45f,
                 ),
@@ -155,10 +165,7 @@ private fun AtmosphereBackground() {
 
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color(0xFF97D7FF).copy(alpha = 0.35f),
-                        Color.Transparent,
-                    ),
+                    colors = listOf(Color(0xFF97D7FF).copy(alpha = 0.35f), Color.Transparent),
                     center = oceanCenter,
                     radius = size.minDimension * 0.55f,
                 ),
@@ -170,7 +177,10 @@ private fun AtmosphereBackground() {
 }
 
 @Composable
-private fun Header(city: CityOption, onPickCity: () -> Unit) {
+private fun Header(
+    city: CityOption,
+    onPickCity: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -183,7 +193,7 @@ private fun Header(city: CityOption, onPickCity: () -> Unit) {
                 color = Color.White.copy(alpha = 0.72f),
             )
             Text(
-                text = "Vreme calmă, fără reclame.",
+                text = "Vreme calma, fara reclame.",
                 style = MaterialTheme.typography.headlineSmall,
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
@@ -216,9 +226,10 @@ private fun Header(city: CityOption, onPickCity: () -> Unit) {
 }
 
 @Composable
-private fun HeroCard(uiState: HomeUiState) {
-    val current = uiState.weather.current
-
+private fun HeroCard(
+    uiState: HomeUiState,
+    onRetry: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F6F1)),
@@ -226,7 +237,7 @@ private fun HeroCard(uiState: HomeUiState) {
     ) {
         Column(
             modifier = Modifier.padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -245,63 +256,172 @@ private fun HeroCard(uiState: HomeUiState) {
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                     )
                     Text(
-                        text = uiState.weather.updatedAtLabel,
+                        text = uiState.weather?.updatedAtLabel ?: "Se pregatesc datele live...",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
 
-                WeatherConditionBadge(condition = current.condition)
+                if (uiState.weather != null) {
+                    WeatherConditionBadge(condition = uiState.weather.current.condition)
+                }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                Text(
-                    text = "${current.temperatureC}°",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+            when {
+                uiState.isLoadingWeather && uiState.weather == null -> {
+                    LoadingBlock()
+                }
 
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = current.condition.label,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
+                uiState.weather != null -> {
+                    WeatherSummary(weather = uiState.weather)
+                }
+            }
+
+            uiState.errorMessage?.let { message ->
+                ErrorCard(
+                    message = message,
+                    onRetry = onRetry,
+                )
+            }
+
+            if (uiState.isLoadingWeather && uiState.weather != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
                     )
                     Text(
-                        text = "Se simte ca ${current.feelsLikeC}°",
+                        text = "Actualizez vremea live...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                     )
                 }
             }
+        }
+    }
+}
 
+@Composable
+private fun LoadingBlock() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(28.dp),
+            strokeWidth = 3.dp,
+        )
+        Column {
             Text(
-                text = current.summary,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+                text = "Cer forecast-ul live...",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Open-Meteo raspunde de obicei foarte repede.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
             )
         }
     }
 }
 
 @Composable
-private fun MetricsRow(uiState: HomeUiState) {
-    val current = uiState.weather.current
+private fun WeatherSummary(weather: WeatherOverview) {
+    val current = weather.current
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Text(
+            text = "${current.temperatureC}°",
+            style = MaterialTheme.typography.displayLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = current.condition.label,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Se simte ca ${current.feelsLikeC}°",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+            )
+        }
+    }
+
+    Text(
+        text = current.summary,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f),
+    )
+}
+
+@Composable
+private fun ErrorCard(
+    message: String,
+    onRetry: () -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE0D2)),
+        shape = MaterialTheme.shapes.large,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = "Nu am putut lua datele live.",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
+            )
+            Button(onClick = onRetry) {
+                Icon(
+                    imageVector = Icons.Rounded.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "Incearca din nou",
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricsRow(weather: WeatherOverview) {
+    val current = weather.current
 
     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { WeatherMetricCard("Plouă?", "${current.precipitationChance}%", Icons.Rounded.Umbrella) }
-        item { WeatherMetricCard("Vânt", "${current.windKph} km/h", Icons.Rounded.Air) }
+        item { WeatherMetricCard("Ploaie", "${current.precipitationChance}%", Icons.Rounded.Umbrella) }
+        item { WeatherMetricCard("Vant", "${current.windKph} km/h", Icons.Rounded.Air) }
         item { WeatherMetricCard("Umiditate", "${current.humidity}%", Icons.Rounded.WaterDrop) }
         item { WeatherMetricCard("UV", current.uvIndex.toString(), Icons.Rounded.WbSunny) }
     }
 }
 
 @Composable
-private fun WeatherMetricCard(label: String, value: String, icon: ImageVector) {
+private fun WeatherMetricCard(
+    label: String,
+    value: String,
+    icon: ImageVector,
+) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.14f)),
         shape = MaterialTheme.shapes.large,
@@ -376,7 +496,7 @@ private fun HourlySection(hourly: List<HourlyForecast>) {
                         color = Color.White.copy(alpha = 0.72f),
                     )
                     Text(
-                        text = "Vânt ${hour.windKph}",
+                        text = "Vant ${hour.windKph}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.64f),
                     )
@@ -437,7 +557,7 @@ private fun DailyForecastCard(day: DailyForecast) {
                     color = Color.White,
                 )
                 Text(
-                    text = "${day.precipitationChance}% precipitații",
+                    text = "${day.precipitationChance}% precipitatii",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.68f),
                 )
@@ -498,12 +618,12 @@ private fun CityPickerDialog(
                 ) {
                     Column {
                         Text(
-                            text = "Schimbă orașul",
+                            text = "Schimba orasul",
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "România mai întâi, apoi orice oraș important din lume.",
+                            text = "Romania mai intai, apoi orice oras important din lume.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
                         )
@@ -522,10 +642,33 @@ private fun CityPickerDialog(
                     value = uiState.query,
                     onValueChange = onQueryChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Caută oraș") },
+                    label = { Text("Cauta oras") },
                     placeholder = { Text("Oradea, Cluj-Napoca, London, Tokyo...") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Search,
+                            contentDescription = null,
+                        )
+                    },
                     singleLine = true,
                 )
+
+                if (uiState.isSearching) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Text(
+                            text = "Caut live in Open-Meteo...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                        )
+                    }
+                }
 
                 Text(
                     text = "Favorite rapide",
@@ -579,7 +722,11 @@ private fun CityPickerDialog(
 }
 
 @Composable
-private fun CitySuggestionRow(city: CityOption, isSelected: Boolean, onClick: () -> Unit) {
+private fun CitySuggestionRow(
+    city: CityOption,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -631,16 +778,16 @@ private val WeatherCondition.icon: ImageVector
         WeatherCondition.Rain -> Icons.Rounded.Umbrella
         WeatherCondition.Thunderstorm -> Icons.Rounded.Thunderstorm
         WeatherCondition.Snow -> Icons.Rounded.ModeNight
-        WeatherCondition.Mist -> Icons.Rounded.Foggy
+        WeatherCondition.Mist -> Icons.Rounded.Cloud
     }
 
 private val WeatherCondition.label: String
     get() = when (this) {
         WeatherCondition.Clear -> "Senin"
         WeatherCondition.PartlyCloudy -> "Cer variabil"
-        WeatherCondition.Cloudy -> "Înnorat"
-        WeatherCondition.Rain -> "Plouă"
+        WeatherCondition.Cloudy -> "Innorat"
+        WeatherCondition.Rain -> "Ploaie"
         WeatherCondition.Thunderstorm -> "Furtuni"
         WeatherCondition.Snow -> "Ninsoare"
-        WeatherCondition.Mist -> "Ceață"
+        WeatherCondition.Mist -> "Ceata"
     }
