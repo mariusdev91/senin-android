@@ -173,3 +173,5 @@ android/.gradle/
 android/local.properties
 android/**/build/
 android/.kotlin/
+desktop/.gradle/
+desktop/**/build/
