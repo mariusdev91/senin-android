@@ -426,6 +426,16 @@
   gap: 0.65rem;
 }
 
+.hero-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(24rem, 32rem);
+  gap: 1.4rem;
+  align-items: start;
+  justify-content: space-between;
+}
+
 .eyebrow {
   font-size: 0.85rem;
   font-weight: 700;
@@ -450,26 +460,103 @@
 }
 
 .hero-copy p {
-  max-width: 48rem;
+  max-width: 32rem;
   margin: 0;
   color: var(--hero-muted);
   font-size: 1.05rem;
 }
 
-.hero-metrics {
-  position: relative;
-  z-index: 1;
+.hero-primary,
+.hero-secondary {
   display: grid;
-  grid-template-columns: 18rem minmax(0, 1fr);
   gap: 1rem;
-  margin-top: 1.5rem;
-  align-items: end;
+}
+
+.hero-primary {
+  justify-items: start;
+}
+
+.hero-side {
+  display: grid;
+  gap: 0.8rem;
+  width: 100%;
 }
 
 .temperature-block {
   display: grid;
   gap: 0.3rem;
-  align-content: end;
+  align-content: start;
+  justify-self: start;
+}
+
+.hero-current-row {
+  display: flex;
+  align-items: end;
+  justify-content: flex-start;
+  width: fit-content;
+}
+
+.temperature-hero {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  gap: 1rem;
+  align-items: center;
+  width: fit-content;
+}
+
+.weather-illustration {
+  display: grid;
+  place-items: center;
+  width: 5.4rem;
+  height: 5.4rem;
+  border-radius: 1.6rem;
+  background: rgba(17, 37, 60, 0.08);
+  color: var(--accent-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.weather-glyph {
+  width: 3.15rem;
+  height: 3.15rem;
+}
+
+.weather-glyph-clear {
+  color: #f1ad2b;
+}
+
+.weather-glyph-partly-cloudy {
+  color: #f1ad2b;
+}
+
+.weather-glyph-partly-cloudy .weather-glyph-sun {
+  fill: #f1ad2b;
+}
+
+.weather-glyph-partly-cloudy .weather-glyph-cloud {
+  fill: #dbe3ea;
+}
+
+.weather-glyph-cloudy {
+  color: #8ea4b8;
+}
+
+.weather-glyph-rain {
+  color: #4b8dc2;
+}
+
+.weather-glyph-thunderstorm {
+  color: #596a98;
+}
+
+.weather-glyph-snow {
+  color: #86a9c7;
+}
+
+.temperature-copy {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: start;
+  text-align: left;
 }
 
 .temperature-value {
@@ -487,7 +574,174 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.7rem;
-  align-self: end;
+}
+
+.sun-card {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  justify-self: stretch;
+  padding: 1.1rem 1.15rem 1.15rem;
+  border-radius: 1.3rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(16, 37, 60, 0.03)),
+    rgba(16, 37, 60, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(17, 37, 60, 0.04);
+}
+
+.sun-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sun-card-header span {
+  color: rgba(17, 37, 60, 0.62);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.sun-card-header strong {
+  color: var(--hero-ink);
+  font-size: 1rem;
+}
+
+.sun-card-body {
+  position: relative;
+  min-height: 12.5rem;
+  padding-bottom: 3rem;
+}
+
+.sun-side {
+  display: grid;
+  gap: 0.25rem;
+  position: absolute;
+  bottom: 0;
+  z-index: 1;
+}
+
+.sun-side-left {
+  left: 0;
+  justify-items: start;
+}
+
+.sun-side-right {
+  right: 0;
+  justify-items: end;
+  text-align: right;
+}
+
+.sun-side span {
+  color: rgba(17, 37, 60, 0.56);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sun-side strong {
+  color: var(--hero-ink);
+  font-size: 1.15rem;
+}
+
+.sun-arc-wrap {
+  display: grid;
+  gap: 0.8rem;
+  justify-items: stretch;
+  min-width: 0;
+  width: 100%;
+}
+
+.sun-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  min-height: 2rem;
+  padding: 0.38rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
+  color: rgba(17, 37, 60, 0.72);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.sun-arc {
+  position: relative;
+  width: 100%;
+  height: 9.5rem;
+}
+
+.sun-arc-graphic {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.sun-backdrop {
+  fill: rgba(255, 255, 255, 0.12);
+}
+
+.sun-baseline {
+  stroke: rgba(17, 37, 60, 0.12);
+  stroke-width: 1.75;
+}
+
+.sun-main-curve {
+  fill: none;
+  stroke: rgba(17, 37, 60, 0.18);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.sun-shadow-curve {
+  fill: none;
+  stroke: rgba(17, 37, 60, 0.08);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.sun-highlight-curve {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.72);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.sun-halo {
+  fill: rgba(255, 220, 129, 0.42);
+}
+
+.sun-core {
+  fill: #fffdf7;
+  stroke: rgba(255, 217, 115, 0.9);
+  stroke-width: 2;
+}
+
+.sun-core-dot {
+  fill: rgba(255, 214, 92, 0.96);
+}
+
+.sun-card-center {
+  display: grid;
+  gap: 0.24rem;
+  padding: 0 7rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.sun-card-center strong {
+  color: var(--hero-ink);
+  font-size: 1.12rem;
+}
+
+.sun-card-center span {
+  color: rgba(17, 37, 60, 0.62);
+  font-size: 0.86rem;
 }
 
 .metric-chip {
@@ -587,6 +841,21 @@
   font-size: 0.88rem;
 }
 
+.hourly-icon {
+  display: grid;
+  place-items: center;
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+}
+
+.hourly-icon .weather-glyph {
+  width: 1.65rem;
+  height: 1.65rem;
+}
+
 .hourly-temp {
   font-size: 2rem;
 }
@@ -608,9 +877,31 @@
   gap: 1rem;
 }
 
-.daily-card div {
+.daily-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.daily-copy {
   display: grid;
   gap: 0.22rem;
+}
+
+.daily-icon {
+  display: grid;
+  place-items: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+.daily-icon .weather-glyph {
+  width: 1.7rem;
+  height: 1.7rem;
 }
 
 .daily-card small {
@@ -716,6 +1007,10 @@
     grid-template-columns: 1fr;
   }
 
+  .hero-layout {
+    grid-template-columns: 1fr;
+  }
+
   .main-grid {
     grid-template-columns: 1fr;
   }
@@ -724,8 +1019,25 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .hero-metrics {
+  .temperature-hero {
     grid-template-columns: 1fr;
+  }
+
+  .hero-current-row {
+    width: 100%;
+  }
+
+  .sun-card-body {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .sun-side-left,
+  .sun-side-right {
+    width: 100%;
+    grid-auto-flow: column;
+    justify-content: space-between;
+    align-items: center;
   }
 }
 

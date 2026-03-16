@@ -301,31 +301,55 @@ function App() {
 
         <main className="main-content">
           <section className="hero-card">
-            <div className="hero-copy">
-              <span className="eyebrow">
-                {weather?.updatedAtLabel ?? 'Pregătesc datele live'}
-              </span>
-              <h2>
-                {selectedCity.name}
-                <small>{selectedCity.subtitle}</small>
-              </h2>
-              <p>{weather?.current.summary ?? 'Colectez forecast-ul actual.'}</p>
-            </div>
+            {weather ? (
+              <div className="hero-layout">
+                <div className="hero-primary">
+                  <div className="hero-copy">
+                    <span className="eyebrow">{weather.updatedAtLabel}</span>
+                    <h2>
+                      {selectedCity.name}
+                      <small>{selectedCity.subtitle}</small>
+                    </h2>
+                    <p>{weather.current.summary}</p>
+                  </div>
 
-            {weather && (
-              <div className="hero-metrics">
-                <div className="temperature-block">
-                  <span className="temperature-value">{formatDegrees(weather.current.temperatureC)}</span>
-                  <span className="temperature-condition">
-                    {labelForCondition(weather.current.condition)}
-                  </span>
+                  <div className="hero-current-row">
+                    <div className="temperature-block">
+                      <div className="temperature-hero">
+                        <div className="weather-illustration" aria-hidden="true">
+                          <WeatherGlyph condition={weather.current.condition} />
+                        </div>
+                        <div className="temperature-copy">
+                          <span className="temperature-value">{formatDegrees(weather.current.temperatureC)}</span>
+                          <span className="temperature-condition">
+                            {labelForCondition(weather.current.condition)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="metric-chip-grid">
-                  <MetricChip label="Se simte" value={formatDegrees(weather.current.feelsLikeC)} />
-                  <MetricChip label="Umiditate" value={`${weather.current.humidity}%`} />
-                  <MetricChip label="Vânt" value={`${weather.current.windKph} km/h`} />
-                  <MetricChip label="Ploaie" value={`${weather.current.precipitationChance}%`} />
+
+                <div className="hero-secondary">
+                  <SunPathCard weather={weather} />
+                  <div className="hero-side">
+                    <div className="metric-chip-grid">
+                      <MetricChip label="Se simte" value={formatDegrees(weather.current.feelsLikeC)} />
+                      <MetricChip label="Umiditate" value={`${weather.current.humidity}%`} />
+                      <MetricChip label="Vânt" value={`${weather.current.windKph} km/h`} />
+                      <MetricChip label="Ploaie" value={`${weather.current.precipitationChance}%`} />
+                    </div>
+                  </div>
                 </div>
+              </div>
+            ) : (
+              <div className="hero-copy">
+                <span className="eyebrow">Pregătesc datele live</span>
+                <h2>
+                  {selectedCity.name}
+                  <small>{selectedCity.subtitle}</small>
+                </h2>
+                <p>Colectez forecast-ul actual.</p>
               </div>
             )}
 
@@ -411,10 +435,100 @@ function MetricTile(props: { label: string; value: string }) {
   )
 }
 
+function SunPathCard(props: { weather: WeatherOverview }) {
+  const progress = sunProgress(
+    props.weather.localTimeLabel,
+    props.weather.sunriseLabel,
+    props.weather.sunsetLabel,
+  )
+  const clampedProgress = Math.min(Math.max(progress, 0), 1)
+  const { x: sunX, y: sunY } = sunPathPoint(clampedProgress)
+  let sunLabel =
+    progress <= 0
+    ? 'Înainte de răsărit'
+    : progress >= 1
+      ? 'După apus'
+      : 'Soarele este pe traseu'
+  let timeHint = timeUntilSunsetLabel(
+    props.weather.localTimeLabel,
+    props.weather.sunsetLabel,
+    progress,
+  )
+
+  if (progress <= 0) {
+    sunLabel = 'Înainte de răsărit'
+    timeHint = `Răsare la ${props.weather.sunriseLabel}`
+  } else if (progress >= 1) {
+    sunLabel = 'După apus'
+    timeHint = `A apus la ${props.weather.sunsetLabel}`
+  } else {
+    sunLabel = 'Soarele traversează cerul'
+  }
+
+  return (
+    <div className="sun-card">
+      <div className="sun-card-header">
+        <span>Lumina de azi</span>
+        <strong>{props.weather.daylightLabel}</strong>
+      </div>
+      <div className="sun-card-body">
+        <div className="sun-side sun-side-left">
+          <span>Răsărit</span>
+          <strong>{props.weather.sunriseLabel}</strong>
+        </div>
+        <div className="sun-arc-wrap">
+          <div className="sun-status-pill">{sunLabel}</div>
+          <div className="sun-arc" aria-hidden="true">
+            <svg viewBox="0 0 260 132" className="sun-arc-graphic">
+              <defs>
+                <filter id="sunGlow">
+                  <feGaussianBlur stdDeviation="5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <rect x="12" y="18" width="236" height="86" rx="43" className="sun-backdrop" />
+              <path
+                d="M22 92 C68 92 90 24 130 24 C170 24 192 92 238 92"
+                className="sun-main-curve"
+              />
+              <path
+                d="M22 92 C68 92 90 124 130 124 C170 124 192 92 238 92"
+                className="sun-shadow-curve"
+              />
+              <line x1="16" y1="92" x2="244" y2="92" className="sun-baseline" />
+              <path
+                d="M22 92 C68 92 90 24 130 24 C170 24 192 92 238 92"
+                className="sun-highlight-curve"
+              />
+              <circle cx={sunX} cy={sunY} r="13" className="sun-halo" filter="url(#sunGlow)" />
+              <circle cx={sunX} cy={sunY} r="7.5" className="sun-core" />
+              <circle cx={sunX} cy={sunY} r="3" className="sun-core-dot" />
+            </svg>
+          </div>
+          <div className="sun-card-center">
+            <strong>{timeHint}</strong>
+            <span>{props.weather.localTimeLabel} ora locală</span>
+          </div>
+        </div>
+        <div className="sun-side sun-side-right">
+          <span>Apus</span>
+          <strong>{props.weather.sunsetLabel}</strong>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function HourlyCard(props: { hour: HourlyForecast }) {
   return (
     <article className="hourly-card">
       <span className="hourly-time">{props.hour.timeLabel}</span>
+      <div className="hourly-icon" aria-hidden="true">
+        <WeatherGlyph condition={props.hour.condition} />
+      </div>
       <strong className="hourly-temp">{formatDegrees(props.hour.temperatureC)}</strong>
       <span className="hourly-condition">{labelForCondition(props.hour.condition)}</span>
       <small>Ploaie {props.hour.precipitationChance}%</small>
@@ -426,9 +540,14 @@ function HourlyCard(props: { hour: HourlyForecast }) {
 function DailyCard(props: { day: DailyForecast }) {
   return (
     <article className="daily-card">
-      <div>
-        <strong>{props.day.dayLabel}</strong>
-        <small>{labelForCondition(props.day.condition)}</small>
+      <div className="daily-card-left">
+        <div className="daily-icon" aria-hidden="true">
+          <WeatherGlyph condition={props.day.condition} />
+        </div>
+        <div className="daily-copy">
+          <strong>{props.day.dayLabel}</strong>
+          <small>{labelForCondition(props.day.condition)}</small>
+        </div>
       </div>
       <div className="daily-card-right">
         <strong>
@@ -438,6 +557,94 @@ function DailyCard(props: { day: DailyForecast }) {
       </div>
     </article>
   )
+}
+
+function WeatherGlyph(props: { condition: WeatherCondition }) {
+  switch (props.condition) {
+    case 'clear':
+      return (
+        <svg viewBox="0 0 64 64" className="weather-glyph weather-glyph-clear">
+          <circle cx="32" cy="32" r="12" fill="currentColor" />
+          {Array.from({ length: 8 }).map((_, index) => {
+            const angle = (index * Math.PI) / 4
+            const x1 = 32 + Math.cos(angle) * 18
+            const y1 = 32 + Math.sin(angle) * 18
+            const x2 = 32 + Math.cos(angle) * 26
+            const y2 = 32 + Math.sin(angle) * 26
+            return (
+              <line
+                key={index}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="currentColor"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+            )
+          })}
+        </svg>
+      )
+    case 'partly-cloudy':
+      return (
+        <svg viewBox="0 0 64 64" className="weather-glyph weather-glyph-partly-cloudy">
+          <circle cx="24" cy="24" r="10" className="weather-glyph-sun" />
+          <path
+            d="M23 43c-5.5 0-10-4-10-9s4.5-9 10-9c1.3 0 2.5.2 3.7.6A11 11 0 0 1 47 32a8 8 0 1 1 0 16H23Z"
+            className="weather-glyph-cloud"
+          />
+        </svg>
+      )
+    case 'cloudy':
+    case 'mist':
+      return (
+        <svg viewBox="0 0 64 64" className="weather-glyph weather-glyph-cloudy">
+          <path
+            d="M21 45c-6 0-11-4.4-11-10s5-10 11-10c1.3 0 2.7.2 3.9.7A13 13 0 0 1 49 32a9 9 0 1 1 0 18H21Z"
+            fill="currentColor"
+          />
+        </svg>
+      )
+    case 'rain':
+      return (
+        <svg viewBox="0 0 64 64" className="weather-glyph weather-glyph-rain">
+          <path
+            d="M21 39c-6 0-11-4.4-11-10s5-10 11-10c1.3 0 2.7.2 3.9.7A13 13 0 0 1 49 26a9 9 0 1 1 0 18H21Z"
+            fill="currentColor"
+          />
+          <path d="M24 46l-4 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+          <path d="M34 46l-4 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+          <path d="M44 46l-4 10" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+        </svg>
+      )
+    case 'thunderstorm':
+      return (
+        <svg viewBox="0 0 64 64" className="weather-glyph weather-glyph-thunderstorm">
+          <path
+            d="M21 39c-6 0-11-4.4-11-10s5-10 11-10c1.3 0 2.7.2 3.9.7A13 13 0 0 1 49 26a9 9 0 1 1 0 18H21Z"
+            fill="currentColor"
+          />
+          <path
+            d="M33 42h9l-7 10h7l-14 12 5-12h-7l7-10Z"
+            fill="#fff5d6"
+          />
+        </svg>
+      )
+    case 'snow':
+      return (
+        <svg viewBox="0 0 64 64" className="weather-glyph weather-glyph-snow">
+          <path
+            d="M21 37c-6 0-11-4.4-11-10s5-10 11-10c1.3 0 2.7.2 3.9.7A13 13 0 0 1 49 24a9 9 0 1 1 0 18H21Z"
+            fill="currentColor"
+          />
+          <path d="M24 47v12M18 53h12M20 49l8 8M28 49l-8 8" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
+          <path d="M42 47v12M36 53h12M38 49l8 8M46 49l-8 8" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      )
+    default:
+      return null
+  }
 }
 
 function labelForCondition(condition: WeatherCondition) {
@@ -468,6 +675,90 @@ function buildInsightSummary(city: CityOption, weather: WeatherOverview) {
 
 function formatDegrees(value: number | string) {
   return `${value}\u00B0`
+}
+
+function sunProgress(currentLabel: string, sunriseLabel: string, sunsetLabel: string) {
+  const current = timeToMinutes(currentLabel)
+  const sunrise = timeToMinutes(sunriseLabel)
+  const sunset = timeToMinutes(sunsetLabel)
+
+  if (current == null || sunrise == null || sunset == null || sunset <= sunrise) {
+    return 0.5
+  }
+
+  if (current <= sunrise) return 0
+  if (current >= sunset) return 1
+
+  return (current - sunrise) / (sunset - sunrise)
+}
+
+function sunPathPoint(progress: number) {
+  const t = Math.min(Math.max(progress, 0), 1)
+
+  if (t <= 0.5) {
+    return cubicBezierPoint(
+      t * 2,
+      { x: 22, y: 92 },
+      { x: 68, y: 92 },
+      { x: 90, y: 24 },
+      { x: 130, y: 24 },
+    )
+  }
+
+  return cubicBezierPoint(
+    (t - 0.5) * 2,
+    { x: 130, y: 24 },
+    { x: 170, y: 24 },
+    { x: 192, y: 92 },
+    { x: 238, y: 92 },
+  )
+}
+
+function cubicBezierPoint(
+  t: number,
+  p0: { x: number; y: number },
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  p3: { x: number; y: number },
+) {
+  const u = 1 - t
+  const tt = t * t
+  const uu = u * u
+  const uuu = uu * u
+  const ttt = tt * t
+
+  return {
+    x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
+    y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y,
+  }
+}
+
+function timeToMinutes(label: string) {
+  const match = /^(\d{2}):(\d{2})$/.exec(label)
+  if (!match) return null
+  return Number(match[1]) * 60 + Number(match[2])
+}
+
+function timeUntilSunsetLabel(currentLabel: string, sunsetLabel: string, progress: number) {
+  const current = timeToMinutes(currentLabel)
+  const sunset = timeToMinutes(sunsetLabel)
+
+  if (current == null || sunset == null) {
+    return currentLabel
+  }
+
+  if (progress >= 1) {
+    return 'Soarele a apus'
+  }
+
+  if (progress <= 0) {
+    return `${currentLabel} acum`
+  }
+
+  const remaining = Math.max(sunset - current, 0)
+  const hours = Math.floor(remaining / 60)
+  const minutes = remaining % 60
+  return `${hours}h ${minutes}m până la apus`
 }
 
 export default App
