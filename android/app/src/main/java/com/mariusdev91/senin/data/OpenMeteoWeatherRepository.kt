@@ -7,9 +7,12 @@ import com.mariusdev91.senin.model.HourlyForecast
 import com.mariusdev91.senin.model.WeatherCondition
 import com.mariusdev91.senin.model.WeatherOverview
 import java.io.IOException
+import java.net.ConnectException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.URLEncoder
+import java.net.UnknownHostException
 import java.nio.charset.StandardCharsets
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -18,6 +21,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 
 class OpenMeteoWeatherRepository : WeatherRepository {
@@ -57,8 +61,8 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         val results = body.optJSONArray("results") ?: JSONArray()
         buildList {
             for (index in 0 until results.length()) {
-                val item = results.optJSONObject(index) ?: continue
-                add(item.toCityOption())
+                val item = results.optJSONObject(index)?.toCityOptionOrNull() ?: continue
+                add(item)
             }
         }.distinctBy { "${it.name}|${it.countryCode}|${it.latitude}|${it.longitude}" }
     }
@@ -94,17 +98,25 @@ class OpenMeteoWeatherRepository : WeatherRepository {
             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
             val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
             if (code !in 200..299) {
-                throw IOException("Open-Meteo error $code: $text")
+                throw IOException("Serviciul meteo a raspuns cu o eroare temporara.")
             }
             JSONObject(text)
+        } catch (error: SocketTimeoutException) {
+            throw IOException("Serviciul meteo raspunde prea greu.", error)
+        } catch (error: UnknownHostException) {
+            throw IOException("Nu am putut contacta serviciul meteo.", error)
+        } catch (error: ConnectException) {
+            throw IOException("Conexiunea catre serviciul meteo a esuat.", error)
+        } catch (error: JSONException) {
+            throw IOException("Raspunsul primit de la serviciul meteo este invalid.", error)
         } finally {
             connection.disconnect()
         }
     }
 
-    private fun JSONObject.toCityOption(): CityOption {
-        val lat = optDouble("latitude")
-        val lon = optDouble("longitude")
+    private fun JSONObject.toCityOptionOrNull(): CityOption? {
+        val lat = optFiniteDouble("latitude") ?: return null
+        val lon = optFiniteDouble("longitude") ?: return null
         val region = optString("admin1").ifBlank {
             optString("country").ifBlank { "Unknown" }
         }
@@ -126,9 +138,9 @@ class OpenMeteoWeatherRepository : WeatherRepository {
     }
 
     private fun JSONObject.toWeatherOverview(city: CityOption): WeatherOverview {
-        val current = optJSONObject("current") ?: throw IOException("Missing current weather block")
-        val hourly = optJSONObject("hourly") ?: throw IOException("Missing hourly weather block")
-        val daily = optJSONObject("daily") ?: throw IOException("Missing daily weather block")
+        val current = optJSONObject("current") ?: throw IOException("Lipseste blocul de vreme curenta.")
+        val hourly = optJSONObject("hourly") ?: throw IOException("Lipseste blocul orar.")
+        val daily = optJSONObject("daily") ?: throw IOException("Lipseste blocul zilnic.")
 
         val currentCondition = current.optInt("weather_code").toWeatherCondition()
         val dailyForecast = daily.toDailyForecast()
@@ -138,13 +150,15 @@ class OpenMeteoWeatherRepository : WeatherRepository {
 
         return WeatherOverview(
             current = CurrentWeather(
-                temperatureC = current.optDouble("temperature_2m").roundToInt(),
-                feelsLikeC = current.optDouble("apparent_temperature").roundToInt(),
+                temperatureC = current.optRoundedInt("temperature_2m"),
+                feelsLikeC = current.optRoundedInt("apparent_temperature"),
                 condition = currentCondition,
                 summary = headline,
-                precipitationChance = hourlyForecast.firstOrNull()?.precipitationChance ?: dailyForecast.firstOrNull()?.precipitationChance ?: 0,
-                humidity = current.optDouble("relative_humidity_2m").roundToInt(),
-                windKph = current.optDouble("wind_speed_10m").roundToInt(),
+                precipitationChance = hourlyForecast.firstOrNull()?.precipitationChance
+                    ?: dailyForecast.firstOrNull()?.precipitationChance
+                    ?: 0,
+                humidity = current.optRoundedInt("relative_humidity_2m"),
+                windKph = current.optRoundedInt("wind_speed_10m"),
                 uvIndex = 0,
             ),
             hourly = hourlyForecast,
@@ -161,17 +175,20 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         val wind = optJSONArray("wind_speed_10m") ?: JSONArray()
         val codes = optJSONArray("weather_code") ?: JSONArray()
 
-        val startIndex = indexOfTime(times, currentTime).coerceAtLeast(0)
-        val endExclusive = minOf(times.length(), startIndex + 6)
+        val startIndex = startIndexForCurrentTime(times, currentTime)
+        val currentDate = runCatching { LocalDateTime.parse(currentTime).toLocalDate() }.getOrNull()
 
         return buildList {
-            for (index in startIndex until endExclusive) {
+            for (index in startIndex until times.length()) {
+                val forecastTime = runCatching { LocalDateTime.parse(times.optString(index)) }.getOrNull() ?: continue
+                if (currentDate != null && forecastTime.toLocalDate() != currentDate) break
+
                 add(
                     HourlyForecast(
                         timeLabel = if (index == startIndex) "Acum" else times.optString(index).toHourLabel(),
-                        temperatureC = temps.optDouble(index).roundToInt(),
-                        precipitationChance = rain.optDouble(index).roundToInt(),
-                        windKph = wind.optDouble(index).roundToInt(),
+                        temperatureC = temps.optRoundedInt(index),
+                        precipitationChance = rain.optRoundedInt(index),
+                        windKph = wind.optRoundedInt(index),
                         condition = codes.optInt(index).toWeatherCondition(),
                     ),
                 )
@@ -188,13 +205,13 @@ class OpenMeteoWeatherRepository : WeatherRepository {
 
         return buildList {
             for (index in 0 until minOf(times.length(), 5)) {
-                val date = LocalDate.parse(times.optString(index))
+                val date = runCatching { LocalDate.parse(times.optString(index)) }.getOrNull() ?: continue
                 add(
                     DailyForecast(
                         dayLabel = date.toDayLabel(index),
-                        highC = highs.optDouble(index).roundToInt(),
-                        lowC = lows.optDouble(index).roundToInt(),
-                        precipitationChance = rain.optDouble(index).roundToInt(),
+                        highC = highs.optRoundedInt(index),
+                        lowC = lows.optRoundedInt(index),
+                        precipitationChance = rain.optRoundedInt(index),
                         condition = codes.optInt(index).toWeatherCondition(),
                     ),
                 )
@@ -202,11 +219,17 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         }
     }
 
-    private fun indexOfTime(times: JSONArray, target: String): Int {
+    private fun startIndexForCurrentTime(times: JSONArray, target: String): Int {
+        val targetTime = runCatching { LocalDateTime.parse(target) }.getOrNull() ?: return 0
+        var candidate = 0
+
         for (index in 0 until times.length()) {
-            if (times.optString(index) == target) return index
+            val time = runCatching { LocalDateTime.parse(times.optString(index)) }.getOrNull() ?: continue
+            if (time.isAfter(targetTime)) break
+            candidate = index
         }
-        return 0
+
+        return candidate
     }
 
     private fun Int.toWeatherCondition(): WeatherCondition = when (this) {
@@ -234,13 +257,15 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         return if (today == null) {
             "$prefix acum in ${city.name}."
         } else {
-            "$prefix azi in ${city.name}. Max ${today.highC}°, min ${today.lowC}°, ploaie ${today.precipitationChance}%."
+            "$prefix azi in ${city.name}. Max ${today.highC.toDegreesLabel()}, min ${today.lowC.toDegreesLabel()}, ploaie ${today.precipitationChance}%."
         }
     }
 
     private fun String.toHourLabel(): String {
         if (isBlank()) return "--:--"
-        return LocalDateTime.parse(this).format(DateTimeFormatter.ofPattern("HH:mm"))
+        return runCatching {
+            LocalDateTime.parse(this).format(DateTimeFormatter.ofPattern("HH:mm"))
+        }.getOrElse { "--:--" }
     }
 
     private fun LocalDate.toDayLabel(index: Int): String = when (index) {
@@ -256,4 +281,20 @@ class OpenMeteoWeatherRepository : WeatherRepository {
             else -> "Duminica"
         }
     }
+
+    private fun JSONObject.optFiniteDouble(key: String): Double? {
+        val value = optDouble(key, Double.NaN)
+        return value.takeIf { it.isFinite() }
+    }
+
+    private fun JSONObject.optRoundedInt(key: String, fallback: Int = 0): Int {
+        return optFiniteDouble(key)?.roundToInt() ?: fallback
+    }
+
+    private fun JSONArray.optRoundedInt(index: Int, fallback: Int = 0): Int {
+        val value = optDouble(index, Double.NaN)
+        return if (value.isFinite()) value.roundToInt() else fallback
+    }
+
+    private fun Int.toDegreesLabel(): String = "${this}\u00B0"
 }

@@ -13,6 +13,7 @@ fun SeninApp() {
         uiState = viewModel.uiState,
         onQueryChange = viewModel::onQueryChange,
         onCitySelected = viewModel::onCitySelected,
+        onFavoriteToggle = viewModel::onFavoriteToggle,
         onRetry = viewModel::onRetry,
     )
 }
