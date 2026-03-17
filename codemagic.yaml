@@ -1,0 +1,62 @@
+workflows:
+  senin-ios-testflight:
+    name: Senin iOS TestFlight
+    max_build_duration: 120
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.mariusdev91.senin
+      vars:
+        APP_PROJECT_DIR: senin_flutter
+        APP_STORE_APPLE_ID: "REPLACE_WITH_APPLE_ID"
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Change to Flutter project directory
+        script: |
+          cd "$CM_BUILD_DIR/$APP_PROJECT_DIR"
+      - name: Get Flutter packages
+        script: |
+          cd "$CM_BUILD_DIR/$APP_PROJECT_DIR"
+          flutter pub get
+      - name: Install CocoaPods dependencies
+        script: |
+          cd "$CM_BUILD_DIR/$APP_PROJECT_DIR/ios"
+          pod install
+      - name: Set up code signing
+        script: |
+          cd "$CM_BUILD_DIR/$APP_PROJECT_DIR/ios"
+          xcode-project use-profiles
+      - name: Flutter analyze
+        script: |
+          cd "$CM_BUILD_DIR/$APP_PROJECT_DIR"
+          flutter analyze
+      - name: Flutter tests
+        script: |
+          cd "$CM_BUILD_DIR/$APP_PROJECT_DIR"
+          flutter test
+      - name: Build signed IPA
+        script: |
+          cd "$CM_BUILD_DIR/$APP_PROJECT_DIR"
+          BUILD_NUMBER=$(($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1))
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - senin_flutter/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      email:
+        recipients:
+          - mariusdev91@gmail.com
+        notify:
+          success: true
+          failure: true
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
