@@ -11,5 +11,16 @@ data class CityOption(
     val isDefault: Boolean = false,
 ) {
     val subtitle: String
-        get() = if (region.isBlank() || region == country) country else "$region, $country"
+        get() {
+            val normalizedRegion = region
+                .removePrefix("Județul ")
+                .removePrefix("Judetul ")
+                .trim()
+
+            return when {
+                countryCode.equals("RO", ignoreCase = true) -> normalizedRegion.ifBlank { country }
+                normalizedRegion.isBlank() || normalizedRegion.equals(country, ignoreCase = true) -> country
+                else -> "$normalizedRegion, $country"
+            }
+        }
 }

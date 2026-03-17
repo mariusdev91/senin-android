@@ -1,4 +1,4 @@
-package com.mariusdev91.senin.ui.home
+﻿package com.mariusdev91.senin.ui.home
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
@@ -134,7 +134,7 @@ fun HomeScreen(
                 }
 
                 if (uiState.favoriteCities.isNotEmpty()) {
-                    item { SectionTitle("Orase favorite") }
+                    item { SectionTitle("Orașe favorite") }
                     item {
                         FavoriteCitiesSection(
                             favoriteCities = uiState.favoriteCities,
@@ -149,7 +149,7 @@ fun HomeScreen(
                     item { MetricsRow(weather = weather) }
                     item { SectionTitle("Ritmul de azi") }
                     item { HourlySection(hourly = weather.hourly) }
-                    item { SectionTitle("Urmatoarele zile") }
+                    item { SectionTitle("Următoarele zile") }
 
                     items(weather.daily) { day ->
                         DailyForecastCard(day = day)
@@ -248,17 +248,17 @@ private fun Header(
             Text(
                 text = "Senin",
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
+                color = HeroPrimaryText,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
                 text = if (pendingCity != null) {
-                    "Pregatesc vremea pentru ${pendingCity.name}"
+                    "Pregătesc vremea pentru ${pendingCity.name}"
                 } else {
-                    "Acum in ${selectedCity.name}"
+                    "Acum în ${selectedCity.name}"
                 },
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.76f),
+                color = HeroPrimaryText.copy(alpha = 0.84f),
             )
         }
 
@@ -277,7 +277,7 @@ private fun Header(
                 modifier = Modifier.size(18.dp),
             )
             Text(
-                text = "Schimba orasul",
+                text = "Schimbă orașul",
                 modifier = Modifier.padding(start = 8.dp),
             )
         }
@@ -315,7 +315,7 @@ private fun HeroCard(
                         color = HeroSecondaryText,
                     )
                     Text(
-                        text = uiState.weather?.updatedAtLabel ?: "Se pregatesc datele live...",
+                        text = uiState.weather?.updatedAtLabel ?: "Se pregătesc datele live...",
                         style = MaterialTheme.typography.labelMedium,
                         color = HeroAccent,
                     )
@@ -486,7 +486,7 @@ private fun LoadingBlock() {
                 color = HeroPrimaryText,
             )
             Text(
-                text = "Open-Meteo raspunde de obicei foarte repede.",
+                text = "Open-Meteo răspunde de obicei foarte repede.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = HeroSecondaryText,
             )
@@ -560,7 +560,7 @@ private fun ErrorCard(
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = "Incearca din nou",
+                    text = "Încearcă din nou",
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
@@ -574,7 +574,7 @@ private fun MetricsRow(weather: WeatherOverview) {
 
     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         item { WeatherMetricCard("Ploaie", "${current.precipitationChance}%", Icons.Rounded.Umbrella) }
-        item { WeatherMetricCard("Vant", "${current.windKph} km/h", Icons.Rounded.Air) }
+        item { WeatherMetricCard("Vânt", "${current.windKph} km/h", Icons.Rounded.Air) }
         item { WeatherMetricCard("Umiditate", "${current.humidity}%", Icons.Rounded.WaterDrop) }
         item { WeatherMetricCard("UV", current.uvIndex.toString(), Icons.Rounded.WbSunny) }
     }
@@ -587,6 +587,7 @@ private fun WeatherMetricCard(
     icon: ImageVector,
 ) {
     Card(
+        modifier = Modifier.width(128.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.14f)),
         shape = MaterialTheme.shapes.large,
     ) {
@@ -705,7 +706,7 @@ private fun HourlyForecastCard(
                     color = secondaryText,
                 )
                 Text(
-                    text = "Vant ${hour.windKph} km/h",
+                    text = "Vânt ${hour.windKph} km/h",
                     style = MaterialTheme.typography.bodySmall,
                     color = tertiaryText,
                 )
@@ -785,7 +786,7 @@ private fun DailyForecastCard(day: DailyForecast) {
                             color = chipText,
                         )
                         Text(
-                            text = "Max / min",
+                            text = "Max / Min",
                             style = MaterialTheme.typography.bodySmall,
                             color = secondaryText,
                         )
@@ -902,12 +903,12 @@ private fun CityPickerDialog(
                 ) {
                     Column {
                         Text(
-                            text = "Schimba orasul",
+                            text = "Schimbă orașul",
                             style = MaterialTheme.typography.headlineSmall,
                             color = DialogPrimaryText,
                         )
                         Text(
-                            text = "Romania mai intai, apoi orice oras important din lume.",
+                            text = "România mai întâi, apoi orice oraș important din lume.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = DialogSecondaryText,
                         )
@@ -926,7 +927,7 @@ private fun CityPickerDialog(
                     value = uiState.query,
                     onValueChange = onQueryChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Cauta oras") },
+                    label = { Text("Caută oraș") },
                     placeholder = { Text("Oradea, Cluj-Napoca, London, Tokyo...") },
                     leadingIcon = {
                         Icon(
@@ -1074,7 +1075,7 @@ private fun CitySuggestionRow(
                 IconButton(onClick = onFavoriteToggle) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        contentDescription = if (isFavorite) "Scoate din favorite" else "Adauga la favorite",
+                        contentDescription = if (isFavorite) "Scoate din favorite" else "Adaugă la favorite",
                         tint = if (isFavorite) DialogAccent else DialogSecondaryText,
                     )
                 }
@@ -1098,11 +1099,12 @@ private val WeatherCondition.label: String
     get() = when (this) {
         WeatherCondition.Clear -> "Senin"
         WeatherCondition.PartlyCloudy -> "Cer variabil"
-        WeatherCondition.Cloudy -> "Innorat"
+        WeatherCondition.Cloudy -> "Înnorat"
         WeatherCondition.Rain -> "Ploaie"
         WeatherCondition.Thunderstorm -> "Furtuni"
         WeatherCondition.Snow -> "Ninsoare"
-        WeatherCondition.Mist -> "Ceata"
+        WeatherCondition.Mist -> "Ceață"
     }
 
 private fun Int.toDegreesLabel(): String = "${this}\u00B0"
+

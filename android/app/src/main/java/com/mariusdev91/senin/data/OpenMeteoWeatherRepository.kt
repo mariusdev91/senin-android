@@ -26,10 +26,10 @@ import org.json.JSONObject
 
 class OpenMeteoWeatherRepository : WeatherRepository {
     private val favorites = listOf(
-        CityOption("oradea", "Oradea", "Bihor", "Romania", "RO", 47.0465, 21.9189, true),
-        CityOption("bucharest", "Bucuresti", "Bucuresti", "Romania", "RO", 44.4268, 26.1025),
-        CityOption("cluj", "Cluj-Napoca", "Cluj", "Romania", "RO", 46.7712, 23.6236),
-        CityOption("timisoara", "Timisoara", "Timis", "Romania", "RO", 45.7489, 21.2087),
+        CityOption("oradea", "Oradea", "Bihor", "România", "RO", 47.0465, 21.9189, true),
+        CityOption("bucharest", "București", "București", "România", "RO", 44.4268, 26.1025),
+        CityOption("cluj", "Cluj-Napoca", "Cluj", "România", "RO", 46.7712, 23.6236),
+        CityOption("timisoara", "Timișoara", "Timiș", "România", "RO", 45.7489, 21.2087),
         CityOption("london", "London", "England", "United Kingdom", "GB", 51.5072, -0.1276),
         CityOption("tokyo", "Tokyo", "Tokyo", "Japan", "JP", 35.6764, 139.6500),
     )
@@ -98,17 +98,17 @@ class OpenMeteoWeatherRepository : WeatherRepository {
             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
             val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
             if (code !in 200..299) {
-                throw IOException("Serviciul meteo a raspuns cu o eroare temporara.")
+                throw IOException("Serviciul meteo a răspuns cu o eroare temporară.")
             }
             JSONObject(text)
         } catch (error: SocketTimeoutException) {
-            throw IOException("Serviciul meteo raspunde prea greu.", error)
+            throw IOException("Serviciul meteo răspunde prea greu.", error)
         } catch (error: UnknownHostException) {
             throw IOException("Nu am putut contacta serviciul meteo.", error)
         } catch (error: ConnectException) {
-            throw IOException("Conexiunea catre serviciul meteo a esuat.", error)
+            throw IOException("Conexiunea către serviciul meteo a eșuat.", error)
         } catch (error: JSONException) {
-            throw IOException("Raspunsul primit de la serviciul meteo este invalid.", error)
+            throw IOException("Răspunsul primit de la serviciul meteo este invalid.", error)
         } finally {
             connection.disconnect()
         }
@@ -118,10 +118,10 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         val lat = optFiniteDouble("latitude") ?: return null
         val lon = optFiniteDouble("longitude") ?: return null
         val region = optString("admin1").ifBlank {
-            optString("country").ifBlank { "Unknown" }
+            optString("country").ifBlank { "Necunoscut" }
         }
-        val country = optString("country").ifBlank { "Unknown" }
-        val name = optString("name").ifBlank { "Unknown city" }
+        val country = optString("country").ifBlank { "Necunoscut" }
+        val name = optString("name").ifBlank { "Oraș necunoscut" }
         val id = opt("id")?.toString()
             ?: "${name.lowercase()}-${country.lowercase()}-${lat}-${lon}"
 
@@ -138,9 +138,9 @@ class OpenMeteoWeatherRepository : WeatherRepository {
     }
 
     private fun JSONObject.toWeatherOverview(city: CityOption): WeatherOverview {
-        val current = optJSONObject("current") ?: throw IOException("Lipseste blocul de vreme curenta.")
-        val hourly = optJSONObject("hourly") ?: throw IOException("Lipseste blocul orar.")
-        val daily = optJSONObject("daily") ?: throw IOException("Lipseste blocul zilnic.")
+        val current = optJSONObject("current") ?: throw IOException("Lipsește blocul de vreme curentă.")
+        val hourly = optJSONObject("hourly") ?: throw IOException("Lipsește blocul orar.")
+        val daily = optJSONObject("daily") ?: throw IOException("Lipsește blocul zilnic.")
 
         val currentCondition = current.optInt("weather_code").toWeatherCondition()
         val dailyForecast = daily.toDailyForecast()
@@ -247,17 +247,17 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         val prefix = when (this) {
             WeatherCondition.Clear -> "Cer senin"
             WeatherCondition.PartlyCloudy -> "Cer variabil"
-            WeatherCondition.Cloudy -> "Innorat"
+            WeatherCondition.Cloudy -> "Înnorat"
             WeatherCondition.Rain -> "Ploaie sau averse"
-            WeatherCondition.Thunderstorm -> "Instabilitate si furtuni"
-            WeatherCondition.Snow -> "Ninsori usoare"
-            WeatherCondition.Mist -> "Ceata si vizibilitate redusa"
+            WeatherCondition.Thunderstorm -> "Instabilitate și furtuni"
+            WeatherCondition.Snow -> "Ninsori ușoare"
+            WeatherCondition.Mist -> "Ceață și vizibilitate redusă"
         }
 
         return if (today == null) {
-            "$prefix acum in ${city.name}."
+            "$prefix acum în ${city.name}."
         } else {
-            "$prefix azi in ${city.name}. Max ${today.highC.toDegreesLabel()}, min ${today.lowC.toDegreesLabel()}, ploaie ${today.precipitationChance}%."
+            "$prefix azi în ${city.name}. Max ${today.highC.toDegreesLabel()}, min ${today.lowC.toDegreesLabel()}, ploaie ${today.precipitationChance}%."
         }
     }
 
@@ -270,15 +270,15 @@ class OpenMeteoWeatherRepository : WeatherRepository {
 
     private fun LocalDate.toDayLabel(index: Int): String = when (index) {
         0 -> "Azi"
-        1 -> "Maine"
+        1 -> "Mâine"
         else -> when (dayOfWeek.value) {
             1 -> "Luni"
-            2 -> "Marti"
+            2 -> "Marți"
             3 -> "Miercuri"
             4 -> "Joi"
             5 -> "Vineri"
-            6 -> "Sambata"
-            else -> "Duminica"
+            6 -> "Sâmbătă"
+            else -> "Duminică"
         }
     }
 

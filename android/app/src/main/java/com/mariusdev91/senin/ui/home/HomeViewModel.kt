@@ -79,7 +79,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 query = query,
                 suggestions = favorites,
                 isSearching = false,
-                searchStatusMessage = if (favorites.isEmpty()) "Adauga orase la favorite pentru acces rapid." else null,
+                searchStatusMessage = if (favorites.isEmpty()) "Adaugă orașe la favorite pentru acces rapid." else null,
             )
             return
         }
@@ -91,7 +91,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 suggestions = localResults,
                 isSearching = false,
                 searchStatusMessage = if (localResults.isEmpty()) {
-                    "Scrie macar 2 litere pentru cautare live."
+                    "Scrie măcar 2 litere pentru căutare live."
                 } else {
                     null
                 },
@@ -117,9 +117,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 suggestions = results,
                 isSearching = false,
                 searchStatusMessage = when {
-                    results.isEmpty() -> "Nu am gasit niciun oras pentru \"$normalized\"."
+                    results.isEmpty() -> "Nu am găsit niciun oraș pentru \"$normalized\"."
                     results.size <= favorites.size && results.all { city -> favorites.any { it.id == city.id } } ->
-                        "Momentan iti arat rezultatele favorite salvate local."
+                        "Momentan îți arăt rezultatele favorite salvate local."
                     else -> null
                 },
             )
@@ -156,7 +156,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             favoriteCities = updatedFavorites,
             suggestions = updatedSuggestionsForFavorites(updatedFavorites),
             searchStatusMessage = if (!isFavorite) {
-                "${city.name} a fost adaugat la favorite."
+                "${city.name} a fost adăugat la favorite."
             } else {
                 "${city.name} a fost scos din favorite."
             },
@@ -230,9 +230,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun Throwable.toUserMessage(): String = when (this) {
-        is SocketTimeoutException -> "Actualizarea dureaza prea mult. Incearca din nou."
-        is UnknownHostException, is ConnectException -> "Nu am putut contacta serviciul meteo. Verifica internetul."
-        is IOException -> message ?: "Momentan nu pot incarca vremea."
-        else -> "A aparut o eroare neasteptata. Incearca din nou."
+        is SocketTimeoutException -> "Actualizarea durează prea mult. Încearcă din nou."
+        is UnknownHostException, is ConnectException -> "Nu am putut contacta serviciul meteo. Verifică internetul."
+        is IOException -> message ?: "Momentan nu pot încărca vremea."
+        else -> "A apărut o eroare neașteptată. Încearcă din nou."
     }
 }

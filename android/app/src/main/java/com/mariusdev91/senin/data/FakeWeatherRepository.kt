@@ -10,11 +10,11 @@ import kotlin.math.absoluteValue
 
 class FakeWeatherRepository : WeatherRepository {
     private val cities = listOf(
-        CityOption("oradea", "Oradea", "Bihor", "Romania", "RO", 47.05, 21.93, true),
-        CityOption("bucharest", "Bucuresti", "Bucuresti", "Romania", "RO", 44.43, 26.10),
-        CityOption("cluj", "Cluj-Napoca", "Cluj", "Romania", "RO", 46.77, 23.59),
-        CityOption("timisoara", "Timisoara", "Timis", "Romania", "RO", 45.76, 21.23),
-        CityOption("iasi", "Iasi", "Iasi", "Romania", "RO", 47.16, 27.58),
+        CityOption("oradea", "Oradea", "Bihor", "România", "RO", 47.05, 21.93, true),
+        CityOption("bucharest", "București", "București", "România", "RO", 44.43, 26.10),
+        CityOption("cluj", "Cluj-Napoca", "Cluj", "România", "RO", 46.77, 23.59),
+        CityOption("timisoara", "Timișoara", "Timiș", "România", "RO", 45.76, 21.23),
+        CityOption("iasi", "Iași", "Iași", "România", "RO", 47.16, 27.58),
         CityOption("london", "London", "England", "United Kingdom", "GB", 51.51, -0.13),
         CityOption("lisbon", "Lisbon", "Lisbon", "Portugal", "PT", 38.72, -9.14),
         CityOption("reykjavik", "Reykjavik", "Capital Region", "Iceland", "IS", 64.15, -21.94),
@@ -78,13 +78,13 @@ class FakeWeatherRepository : WeatherRepository {
                 ),
                 daily = listOf(
                     DailyForecast("Azi", dayHigh, dayLow, precipitationChance, condition),
-                    DailyForecast("Maine", dayHigh + delta, dayLow + 1, (precipitationChance + 8).coerceAtMost(95), condition.nextDayCondition()),
+                    DailyForecast("Mâine", dayHigh + delta, dayLow + 1, (precipitationChance + 8).coerceAtMost(95), condition.nextDayCondition()),
                     DailyForecast("Miercuri", dayHigh - 1, dayLow - 1, (precipitationChance + 4).coerceAtMost(90), WeatherCondition.PartlyCloudy),
                     DailyForecast("Joi", dayHigh + 2, dayLow, (precipitationChance - 12).coerceAtLeast(5), WeatherCondition.Clear),
                     DailyForecast("Vineri", dayHigh + 1, dayLow - 2, (precipitationChance + 10).coerceAtMost(95), condition.nextDayCondition()),
                 ),
-                updatedAtLabel = "actualizat acum 3 min",
-                sourceLabel = "Preview data pentru designul initial",
+                updatedAtLabel = "Actualizat acum 3 min",
+                sourceLabel = "Date preview pentru designul inițial",
             )
         }
 
