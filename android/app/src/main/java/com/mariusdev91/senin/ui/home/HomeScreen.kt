@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -41,6 +43,10 @@ import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.rounded.AddLocationAlt
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -190,6 +196,7 @@ fun HomeScreen(
 }
 
 @Composable
+@OptIn(ExperimentalMaterialApi::class)
 private fun ForecastScreen(
     uiState: HomeUiState,
     onOpenSearch: () -> Unit,
@@ -199,93 +206,46 @@ private fun ForecastScreen(
 ) {
     val weather = uiState.weather
     val selectedCity = uiState.pendingCity ?: uiState.selectedCity
+    val visibleHours = weather?.hourly?.take(8).orEmpty()
+    val peakHourIndex = visibleHours.indexOfFirst { hour ->
+        hour.temperatureC == visibleHours.maxOfOrNull { it.temperatureC }
+    }
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = uiState.isLoadingWeather,
+        onRefresh = onRetry,
+    )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 76.dp, bottom = 104.dp),
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pullRefresh(pullRefreshState),
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 126.dp, bottom = 132.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .offset(x = 31.dp, y = 26.dp)
-                    .width(2.dp)
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Transparent,
-                                ColorPrimary.copy(alpha = 0.3f),
-                                ColorPrimary.copy(alpha = 0.3f),
-                                Color.Transparent,
-                            ),
-                        ),
-                    ),
-            )
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-            ) {
-                if (weather == null && uiState.errorMessage != null) {
-                    item {
-                        ErrorCard(
-                            message = uiState.errorMessage,
-                            actionLabel = "Incearca din nou",
-                            onAction = onRetry,
-                        )
-                    }
+            if (weather == null && uiState.errorMessage != null) {
+                item {
+                    ErrorCard(
+                        message = uiState.errorMessage,
+                        actionLabel = "Incearca din nou",
+                        onAction = onRetry,
+                    )
                 }
-
-        if (weather != null) {
-            val visibleHours = weather.hourly.take(8)
-            val peakHourIndex = visibleHours.indexOfFirst { hour ->
-                hour.temperatureC == visibleHours.maxOfOrNull { it.temperatureC }
             }
 
-            item {
-                TodayOutlookSection(
-                    summary = weather.current.summary,
-                )
-            }
-
-            items(
-                items = visibleHours,
-                key = { it.timeLabel },
-            ) { hour ->
-                val currentIndex = visibleHours.indexOf(hour)
-                val isNow = currentIndex == 0
-                val isPeak = currentIndex == peakHourIndex
-                val sunsetHour = weather.details.sunSchedule.sunsetLabel.take(2)
-                val isSunset = sunsetHour.isNotBlank() && hour.timeLabel.startsWith(sunsetHour)
-
-                TimelineWeatherSection(
-                            hour = hour,
-                            isNow = isNow,
-                            isPeak = isPeak,
-                            isSunset = isSunset,
-                        )
-                    }
-
-                    item {
-                        Next24HoursSection(
-                            hourly = weather.hourly.take(24),
-                        )
-                    }
-
-                    item {
-                        SevenDayForecastSection(
-                            daily = weather.daily.take(7),
-                        )
-                    }
-
-                    item {
-                        ForecastBentoDetails(
-                            current = weather.current,
-                            details = weather.details,
-                        )
-                    }
+            if (weather != null) {
+                item {
+                    ForecastTimelineCanvas(
+                        summary = weather.current.summary,
+                        visibleHours = visibleHours,
+                        next24Hours = weather.hourly.take(24),
+                        peakHourIndex = peakHourIndex,
+                        details = weather.details,
+                        current = weather.current,
+                        daily = weather.daily.take(7),
+                    )
                 }
             }
         }
@@ -294,6 +254,16 @@ private fun ForecastScreen(
             city = selectedCity,
             current = weather?.current,
             modifier = Modifier.align(Alignment.TopCenter),
+        )
+
+        PullRefreshIndicator(
+            refreshing = uiState.isLoadingWeather,
+            state = pullRefreshState,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 100.dp),
+            backgroundColor = ColorSurfaceContainerHigh.copy(alpha = 0.92f),
+            contentColor = Warm,
         )
     }
 }
@@ -312,7 +282,7 @@ private fun LocationsScreen(
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 92.dp, bottom = 128.dp),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 118.dp, bottom = 128.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
@@ -377,7 +347,7 @@ private fun DetailsScreen(uiState: HomeUiState) {
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 92.dp, bottom = 124.dp),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 118.dp, bottom = 124.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             item {
@@ -410,7 +380,9 @@ private fun DetailsScreen(uiState: HomeUiState) {
 @Composable
 private fun DetailsTopBar(modifier: Modifier = Modifier) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding(),
         color = Color(0xCC0F172A),
         shape = RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp),
     ) {
@@ -463,7 +435,9 @@ private fun ForecastTopBar(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding(),
         color = Color(0xCC0F172A),
         shape = RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp),
     ) {
@@ -525,7 +499,9 @@ private fun LocationsTopBar(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding(),
         color = Color(0xCC0F172A),
         shape = RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp),
     ) {
@@ -722,8 +698,80 @@ private fun EmptyLocationsHint() {
 }
 
 @Composable
-private fun TodayOutlookSection(summary: String) {
-    Box(modifier = Modifier.padding(start = 48.dp)) {
+private fun ForecastTimelineCanvas(
+    summary: String,
+    visibleHours: List<HourlyForecast>,
+    next24Hours: List<HourlyForecast>,
+    peakHourIndex: Int,
+    details: WeatherDetails,
+    current: CurrentWeather,
+    daily: List<DailyForecast>,
+) {
+    val timelineStart = 38.dp
+    val lineOffset = 21.dp
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        Box {
+            Box(
+                modifier = Modifier.matchParentSize(),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = lineOffset, y = 26.dp)
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .padding(bottom = 12.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    ColorPrimary.copy(alpha = 0.3f),
+                                    ColorPrimary.copy(alpha = 0.3f),
+                                    Color.Transparent,
+                                ),
+                            ),
+                        ),
+                )
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                TodayOutlookSection(
+                    summary = summary,
+                    timelineStart = timelineStart,
+                )
+
+                visibleHours.forEachIndexed { currentIndex, hour ->
+                    val isNow = currentIndex == 0
+                    val isPeak = currentIndex == peakHourIndex
+                    val sunsetHour = details.sunSchedule.sunsetLabel.take(2)
+                    val isSunset = sunsetHour.isNotBlank() && hour.timeLabel.startsWith(sunsetHour)
+
+                    TimelineWeatherSection(
+                        hour = hour,
+                        isNow = isNow,
+                        isPeak = isPeak,
+                        isSunset = isSunset,
+                        timelineStart = timelineStart,
+                    )
+                }
+            }
+        }
+
+        Next24HoursSection(hourly = next24Hours)
+        SevenDayForecastSection(daily = daily)
+        ForecastBentoDetails(current = current, details = details)
+    }
+}
+
+@Composable
+private fun TodayOutlookSection(summary: String, timelineStart: Dp) {
+    Box(modifier = Modifier.padding(start = timelineStart)) {
         Box(
             modifier = Modifier
                 .offset(x = (-23).dp, y = 6.dp)
@@ -767,6 +815,7 @@ private fun TimelineWeatherSection(
     isNow: Boolean,
     isPeak: Boolean,
     isSunset: Boolean,
+    timelineStart: Dp,
 ) {
     val dotColor = when {
         isNow -> ColorPrimary
@@ -789,10 +838,10 @@ private fun TimelineWeatherSection(
     }
     val leadingTextColor = if (isNow) ColorOnSurface else ColorOnSurfaceVariant
 
-    Box(modifier = Modifier.padding(start = 48.dp)) {
+    Box(modifier = Modifier.padding(start = timelineStart)) {
         Box(
             modifier = Modifier
-                .offset(x = (-21).dp, y = 8.dp)
+                .offset(x = (-19).dp, y = 8.dp)
                 .size(if (isNow || isPeak) 12.dp else 12.dp)
                 .clip(CircleShape)
                 .background(dotColor),
@@ -800,22 +849,30 @@ private fun TimelineWeatherSection(
         if (dotRing != Color.Transparent) {
             Box(
                 modifier = Modifier
-                    .offset(x = (-25).dp, y = 4.dp)
+                    .offset(x = (-23).dp, y = 4.dp)
                     .size(20.dp)
                     .clip(CircleShape)
                     .background(dotRing),
             )
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
             Column(
-                modifier = Modifier.width(48.dp).padding(top = 4.dp),
+                modifier = Modifier
+                    .width(54.dp)
+                    .padding(top = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     text = if (isNow) "Now" else hour.timeLabel,
                     color = leadingTextColor,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp,
+                        letterSpacing = (-0.4).sp,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
                 )
             }
 
@@ -834,7 +891,7 @@ private fun TimelineWeatherSection(
                 ) {
                     Row(
                         modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -848,7 +905,7 @@ private fun TimelineWeatherSection(
                                 isSunset -> ColorOnSurfaceVariant
                                 else -> hour.condition.accent()
                             },
-                            modifier = Modifier.size(30.dp),
+                            modifier = Modifier.size(28.dp),
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
@@ -864,9 +921,11 @@ private fun TimelineWeatherSection(
                                 },
                                 color = if (isPeak) ColorTertiaryDim else ColorOnSurfaceVariant,
                                 style = MaterialTheme.typography.bodySmall.copy(
-                                    letterSpacing = 1.1.sp,
+                                    letterSpacing = 0.6.sp,
                                     fontWeight = FontWeight.Medium,
                                 ),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
