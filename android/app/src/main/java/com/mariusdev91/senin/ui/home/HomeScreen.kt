@@ -1,10 +1,11 @@
-package com.mariusdev91.senin.ui.home
+﻿package com.mariusdev91.senin.ui.home
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Grain
 import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.ModeNight
 import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Search
@@ -78,6 +81,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.mariusdev91.senin.i18n.AppLanguage
+import com.mariusdev91.senin.i18n.currentStrings
 import com.mariusdev91.senin.model.AirQuality
 import com.mariusdev91.senin.model.CityOption
 import com.mariusdev91.senin.model.CurrentWeather
@@ -89,10 +94,10 @@ import com.mariusdev91.senin.model.WeatherCondition
 import com.mariusdev91.senin.model.WeatherDetails
 import com.mariusdev91.senin.model.WeatherOverview
 
-private enum class HomeTab(val title: String) {
-    Forecast("Prognoza"),
-    Locations("Locatii"),
-    Details("Detalii"),
+private enum class HomeTab {
+    Forecast,
+    Locations,
+    Details,
 }
 
 private val MidnightStart = Color(0xFF1E3A8A)
@@ -124,10 +129,14 @@ fun HomeScreen(
     onQueryChange: (String) -> Unit,
     onCitySelected: (CityOption) -> Unit,
     onFavoriteToggle: (CityOption) -> Unit,
+    onLanguageSelected: (AppLanguage) -> Unit,
     onRetry: () -> Unit,
 ) {
+    val strings = currentStrings()
     var tabIndex by rememberSaveable { mutableIntStateOf(0) }
     var isSearchOpen by rememberSaveable { mutableStateOf(false) }
+    var isMenuOpen by rememberSaveable { mutableStateOf(false) }
+    var isLanguageDialogOpen by rememberSaveable { mutableStateOf(false) }
     val activeTab = HomeTab.entries[tabIndex]
 
     Box(
@@ -142,8 +151,7 @@ fun HomeScreen(
             HomeTab.Forecast -> ForecastScreen(
                 uiState = uiState,
                 onOpenSearch = { isSearchOpen = true },
-                onOpenLocations = { tabIndex = HomeTab.Locations.ordinal },
-                onOpenDetails = { tabIndex = HomeTab.Details.ordinal },
+                onOpenMenu = { isMenuOpen = true },
                 onRetry = onRetry,
             )
 
@@ -180,6 +188,28 @@ fun HomeScreen(
         }
     }
 
+    if (isMenuOpen) {
+        AppMenuDialog(
+            label = strings.languagesMenu,
+            onDismiss = { isMenuOpen = false },
+            onLanguagesClick = {
+                isMenuOpen = false
+                isLanguageDialogOpen = true
+            },
+        )
+    }
+
+    if (isLanguageDialogOpen) {
+        LanguageDialog(
+            selectedLanguage = uiState.selectedLanguage,
+            onDismiss = { isLanguageDialogOpen = false },
+            onLanguageSelected = {
+                isLanguageDialogOpen = false
+                onLanguageSelected(it)
+            },
+        )
+    }
+
     if (isSearchOpen) {
         SearchDialog(
             uiState = uiState,
@@ -200,10 +230,10 @@ fun HomeScreen(
 private fun ForecastScreen(
     uiState: HomeUiState,
     onOpenSearch: () -> Unit,
-    onOpenLocations: () -> Unit,
-    onOpenDetails: () -> Unit,
+    onOpenMenu: () -> Unit,
     onRetry: () -> Unit,
 ) {
+    val strings = currentStrings()
     val weather = uiState.weather
     val selectedCity = uiState.pendingCity ?: uiState.selectedCity
     val visibleHours = weather?.hourly?.take(8).orEmpty()
@@ -229,7 +259,7 @@ private fun ForecastScreen(
                 item {
                     ErrorCard(
                         message = uiState.errorMessage,
-                        actionLabel = "Incearca din nou",
+                        actionLabel = strings.retry,
                         onAction = onRetry,
                     )
                 }
@@ -253,6 +283,7 @@ private fun ForecastScreen(
         ForecastTopBar(
             city = selectedCity,
             current = weather?.current,
+            onOpenMenu = onOpenMenu,
             modifier = Modifier.align(Alignment.TopCenter),
         )
 
@@ -275,6 +306,7 @@ private fun LocationsScreen(
     onCitySelected: (CityOption) -> Unit,
     onFavoriteToggle: (CityOption) -> Unit,
 ) {
+    val strings = currentStrings()
     Box(modifier = Modifier.fillMaxSize()) {
         LocationsTopBar(
             modifier = Modifier.align(Alignment.TopCenter),
@@ -287,7 +319,7 @@ private fun LocationsScreen(
         ) {
             item {
                 SearchFieldCard(
-                    placeholder = "Cauta un oras",
+                    placeholder = strings.searchCityPlaceholder,
                     onClick = onOpenSearch,
                 )
             }
@@ -301,7 +333,7 @@ private fun LocationsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Locatii salvate",
+                        text = strings.savedLocations,
                         color = ColorOnSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Medium,
@@ -309,7 +341,7 @@ private fun LocationsScreen(
                         ),
                     )
                     Text(
-                        text = "${uiState.favoriteCities.size} orase",
+                        text = strings.savedCitiesCount(uiState.favoriteCities.size),
                         color = ColorOnSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -340,10 +372,15 @@ private fun LocationsScreen(
 }
 
 @Composable
-private fun DetailsScreen(uiState: HomeUiState) {
+private fun DetailsScreen(
+    uiState: HomeUiState,
+) {
+    val strings = currentStrings()
     val weather = uiState.weather
     Box(modifier = Modifier.fillMaxSize()) {
-        DetailsTopBar(modifier = Modifier.align(Alignment.TopCenter))
+        DetailsTopBar(
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -361,7 +398,7 @@ private fun DetailsScreen(uiState: HomeUiState) {
                 item {
                     ErrorCard(
                         message = uiState.errorMessage,
-                        actionLabel = "Inapoi",
+                        actionLabel = strings.retry,
                         onAction = {},
                     )
                 }
@@ -378,7 +415,10 @@ private fun DetailsScreen(uiState: HomeUiState) {
 }
 
 @Composable
-private fun DetailsTopBar(modifier: Modifier = Modifier) {
+private fun DetailsTopBar(
+    modifier: Modifier = Modifier,
+) {
+    val strings = currentStrings()
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -390,15 +430,15 @@ private fun DetailsTopBar(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 18.dp),
-            contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Senin",
+                text = strings.appName,
                 color = ColorOnSurface,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Light,
                     letterSpacing = 2.8.sp,
                 ),
+                modifier = Modifier.align(Alignment.CenterStart),
             )
         }
     }
@@ -406,9 +446,10 @@ private fun DetailsTopBar(modifier: Modifier = Modifier) {
 
 @Composable
 private fun DetailsHeaderSection(city: CityOption, updatedLabel: String?) {
+    val strings = currentStrings()
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "DETALII METEO",
+            text = strings.detailedMetrics,
             color = ColorPrimary,
             style = MaterialTheme.typography.labelLarge.copy(
                 fontWeight = FontWeight.Medium,
@@ -421,7 +462,7 @@ private fun DetailsHeaderSection(city: CityOption, updatedLabel: String?) {
             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Light),
         )
         Text(
-            text = updatedLabel ?: "Ultima actualizare indisponibila",
+            text = strings.lastUpdated(updatedLabel),
             color = TextMuted,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
         )
@@ -432,8 +473,10 @@ private fun DetailsHeaderSection(city: CityOption, updatedLabel: String?) {
 private fun ForecastTopBar(
     city: CityOption,
     current: CurrentWeather?,
+    onOpenMenu: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val strings = currentStrings()
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -448,23 +491,35 @@ private fun ForecastTopBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "Senin",
-                    color = ColorOnSurface,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Light,
-                        letterSpacing = 2.4.sp,
-                    ),
-                )
-                Text(
-                    text = city.name,
-                    color = ColorPrimary,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = (-0.2).sp,
-                    ),
-                )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onOpenMenu) {
+                    Icon(
+                        imageVector = Icons.Rounded.Menu,
+                        contentDescription = strings.languagesMenu,
+                        tint = ColorOnSurface,
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = strings.appName,
+                        color = ColorOnSurface,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Light,
+                            letterSpacing = 2.4.sp,
+                        ),
+                    )
+                    Text(
+                        text = city.name,
+                        color = ColorPrimary,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = (-0.2).sp,
+                        ),
+                    )
+                }
             }
 
             Row(
@@ -478,7 +533,7 @@ private fun ForecastTopBar(
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Light),
                     )
                     Text(
-                        text = current?.condition?.label() ?: "Loading",
+                        text = current?.condition?.let(strings::localizedCondition) ?: strings.loading,
                         color = ColorOnSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -498,6 +553,7 @@ private fun ForecastTopBar(
 private fun LocationsTopBar(
     modifier: Modifier = Modifier,
 ) {
+    val strings = currentStrings()
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -512,7 +568,7 @@ private fun LocationsTopBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Senin",
+                text = strings.appName,
                 color = Color(0xFFF8FAFC),
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Light,
@@ -565,6 +621,7 @@ private fun SavedLocationGlassCard(
     onClick: () -> Unit,
     onFavoriteToggle: () -> Unit,
 ) {
+    val strings = currentStrings()
     val glow = when (preview?.condition ?: WeatherCondition.Cloudy) {
         WeatherCondition.Clear -> ColorTertiary.copy(alpha = 0.05f)
         WeatherCondition.PartlyCloudy -> ColorPrimary.copy(alpha = 0.05f)
@@ -594,69 +651,157 @@ private fun SavedLocationGlassCard(
                     ),
             )
 
-            Row(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        if (isSelected) {
+                val compactCard = maxWidth < 400.dp
+
+                if (compactCard) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.MyLocation,
+                                            contentDescription = null,
+                                            tint = ColorOnSurfaceVariant,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
+                                    Text(
+                                        text = city.name,
+                                        color = ColorOnSurface,
+                                        style = MaterialTheme.typography.headlineSmall.copy(
+                                            fontWeight = FontWeight.Light,
+                                            letterSpacing = (-0.6).sp,
+                                        ),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                Text(
+                                    text = preview?.let { "${it.localTimeLabel} · ${it.conditionLabel}" } ?: city.subtitle,
+                                    color = ColorOnSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+
+                            IconButton(onClick = onFavoriteToggle) {
+                                Icon(
+                                    imageVector = Icons.Rounded.DeleteOutline,
+                                    contentDescription = strings.removeFromSavedLocations,
+                                    tint = Danger,
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             Icon(
-                                imageVector = Icons.Rounded.MyLocation,
+                                imageVector = (preview?.condition ?: WeatherCondition.Cloudy).icon(),
                                 contentDescription = null,
-                                tint = ColorOnSurfaceVariant,
-                                modifier = Modifier.size(16.dp),
+                                tint = (preview?.condition ?: WeatherCondition.Cloudy).accent(),
+                                modifier = Modifier.size(38.dp),
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = preview?.temperatureC?.let { "$it°" } ?: "--°",
+                                color = ColorOnSurface,
+                                style = MaterialTheme.typography.displaySmall.copy(
+                                    fontWeight = FontWeight.Light,
+                                    letterSpacing = (-1.8).sp,
+                                ),
                             )
                         }
-                        Text(
-                            text = city.name,
-                            color = ColorOnSurface,
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Light,
-                                letterSpacing = (-0.6).sp,
-                            ),
-                        )
                     }
-                    Text(
-                        text = preview?.let { "${it.localTimeLabel} · ${it.conditionLabel}" } ?: city.subtitle,
-                        color = ColorOnSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.MyLocation,
+                                        contentDescription = null,
+                                        tint = ColorOnSurfaceVariant,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                                Text(
+                                    text = city.name,
+                                    color = ColorOnSurface,
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontWeight = FontWeight.Light,
+                                        letterSpacing = (-0.6).sp,
+                                    ),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            Text(
+                                text = preview?.let { "${it.localTimeLabel} · ${it.conditionLabel}" } ?: city.subtitle,
+                                color = ColorOnSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = (preview?.condition ?: WeatherCondition.Cloudy).icon(),
-                        contentDescription = null,
-                        tint = (preview?.condition ?: WeatherCondition.Cloudy).accent(),
-                        modifier = Modifier.size(38.dp),
-                    )
-                    Text(
-                        text = preview?.temperatureC?.let { "$it°" } ?: "--°",
-                        color = ColorOnSurface,
-                        style = MaterialTheme.typography.displaySmall.copy(
-                            fontWeight = FontWeight.Light,
-                            letterSpacing = (-1.8).sp,
-                        ),
-                    )
-                    IconButton(onClick = onFavoriteToggle) {
-                        Icon(
-                            imageVector = Icons.Rounded.DeleteOutline,
-                            contentDescription = "Scoate din locatii salvate",
-                            tint = Danger,
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = (preview?.condition ?: WeatherCondition.Cloudy).icon(),
+                                contentDescription = null,
+                                tint = (preview?.condition ?: WeatherCondition.Cloudy).accent(),
+                                modifier = Modifier.size(38.dp),
+                            )
+                            Text(
+                                text = preview?.temperatureC?.let { "$it°" } ?: "--°",
+                                color = ColorOnSurface,
+                                style = MaterialTheme.typography.displaySmall.copy(
+                                    fontWeight = FontWeight.Light,
+                                    letterSpacing = (-1.8).sp,
+                                ),
+                            )
+                            IconButton(onClick = onFavoriteToggle) {
+                                Icon(
+                                    imageVector = Icons.Rounded.DeleteOutline,
+                                    contentDescription = strings.removeFromSavedLocations,
+                                    tint = Danger,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -666,6 +811,7 @@ private fun SavedLocationGlassCard(
 
 @Composable
 private fun EmptyLocationsHint() {
+    val strings = currentStrings()
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -688,7 +834,7 @@ private fun EmptyLocationsHint() {
             )
         }
         Text(
-            text = "Adauga mai multe orase pentru a urmari vremea din alte locuri.",
+            text = strings.noSavedLocationsHint,
             color = ColorOnSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
@@ -771,6 +917,7 @@ private fun ForecastTimelineCanvas(
 
 @Composable
 private fun TodayOutlookSection(summary: String, timelineStart: Dp) {
+    val strings = currentStrings()
     Box(modifier = Modifier.padding(start = timelineStart)) {
         Box(
             modifier = Modifier
@@ -792,7 +939,7 @@ private fun TodayOutlookSection(summary: String, timelineStart: Dp) {
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "TODAY'S OUTLOOK",
+                    text = strings.todaysOutlook,
                     color = ColorPrimary,
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontWeight = FontWeight.Bold,
@@ -817,6 +964,7 @@ private fun TimelineWeatherSection(
     isSunset: Boolean,
     timelineStart: Dp,
 ) {
+    val strings = currentStrings()
     val dotColor = when {
         isNow -> ColorPrimary
         isPeak -> ColorTertiary
@@ -859,20 +1007,20 @@ private fun TimelineWeatherSection(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
             Column(
                 modifier = Modifier
-                    .width(54.dp)
+                    .width(64.dp)
                     .padding(top = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = if (isNow) "Now" else hour.timeLabel,
+                    text = if (isNow) strings.now else hour.timeLabel,
                     color = leadingTextColor,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp,
-                        letterSpacing = (-0.4).sp,
+                        fontSize = 15.sp,
+                        letterSpacing = (-0.3).sp,
                     ),
                     maxLines = 1,
-                    overflow = TextOverflow.Clip,
+                    overflow = TextOverflow.Visible,
                 )
             }
 
@@ -882,67 +1030,162 @@ private fun TimelineWeatherSection(
                 color = cardColor,
                 contentColor = ColorOnSurface,
             ) {
-                Row(
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(horizontal = 14.dp, vertical = 16.dp),
                 ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = when {
-                                isSunset -> Icons.Rounded.WbSunny
-                                else -> hour.condition.icon()
-                            },
-                            contentDescription = null,
-                            tint = when {
-                                isPeak -> ColorTertiary
-                                isSunset -> ColorOnSurfaceVariant
-                                else -> hour.condition.accent()
-                            },
-                            modifier = Modifier.size(28.dp),
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = "${hour.temperatureC}°",
-                                color = if (isPeak) ColorTertiary else ColorOnSurface,
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                            )
-                            Text(
-                                text = when {
-                                    isPeak -> "Daily High"
-                                    isSunset -> "Sunset"
-                                    else -> hour.condition.label()
-                                },
-                                color = if (isPeak) ColorTertiaryDim else ColorOnSurfaceVariant,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    letterSpacing = 0.6.sp,
-                                    fontWeight = FontWeight.Medium,
-                                ),
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
+                    val compactCard = maxWidth < 320.dp
 
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        if (isNow || (!isPeak && !isSunset)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                                TimelineStat("Wind", "${hour.windKph}km/h")
-                                TimelineStat("Hum", "${hour.precipitationChance}%")
+                    if (compactCard) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = when {
+                                        isSunset -> Icons.Rounded.WbSunny
+                                        else -> hour.condition.icon()
+                                    },
+                                    contentDescription = null,
+                                    tint = when {
+                                        isPeak -> ColorTertiary
+                                        isSunset -> ColorOnSurfaceVariant
+                                        else -> hour.condition.accent()
+                                    },
+                                    modifier = Modifier.size(24.dp),
+                                )
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        text = "${hour.temperatureC}°",
+                                        color = if (isPeak) ColorTertiary else ColorOnSurface,
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 16.sp,
+                                        ),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Clip,
+                                    )
+                                    Text(
+                                        text = when {
+                                            isPeak -> strings.dailyHigh
+                                            isSunset -> strings.sunset.replaceFirstChar { it.uppercase() }
+                                            else -> strings.localizedCondition(hour.condition)
+                                        },
+                                        color = if (isPeak) ColorTertiaryDim else ColorOnSurfaceVariant,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 10.sp,
+                                            lineHeight = 12.sp,
+                                            letterSpacing = 0.1.sp,
+                                            fontWeight = FontWeight.Medium,
+                                        ),
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
-                        } else if (isPeak) {
-                            TimelineStat("Peak UV", "6 High", alignEnd = true)
-                        } else {
-                            TimelineStat("Visibility", "12km", alignEnd = true)
+
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                if (isNow || (!isPeak && !isSunset)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        TimelineStat(strings.wind, "${hour.windKph}km/h")
+                                        TimelineStat(strings.humidityShort, "${hour.precipitationChance}%")
+                                    }
+                                } else if (isPeak) {
+                                    TimelineStat(strings.peakUv, "6 ${strings.uvLabel(6)}", alignEnd = true)
+                                } else {
+                                    TimelineStat(strings.visibilityShort, "12km", alignEnd = true)
+                                }
+                            }
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    imageVector = when {
+                                        isSunset -> Icons.Rounded.WbSunny
+                                        else -> hour.condition.icon()
+                                    },
+                                    contentDescription = null,
+                                    tint = when {
+                                        isPeak -> ColorTertiary
+                                        isSunset -> ColorOnSurfaceVariant
+                                        else -> hour.condition.accent()
+                                    },
+                                    modifier = Modifier.size(24.dp),
+                                )
+                                Column(
+                                    modifier = Modifier.widthIn(min = 72.dp),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        text = "${hour.temperatureC}°",
+                                        color = if (isPeak) ColorTertiary else ColorOnSurface,
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 16.sp,
+                                        ),
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Clip,
+                                    )
+                                    Text(
+                                        text = when {
+                                            isPeak -> strings.dailyHigh
+                                            isSunset -> strings.sunset.replaceFirstChar { it.uppercase() }
+                                            else -> strings.localizedCondition(hour.condition)
+                                        },
+                                        color = if (isPeak) ColorTertiaryDim else ColorOnSurfaceVariant,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 11.sp,
+                                            lineHeight = 13.sp,
+                                            letterSpacing = 0.2.sp,
+                                            fontWeight = FontWeight.Medium,
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                if (isNow || (!isPeak && !isSunset)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        TimelineStat(strings.wind, "${hour.windKph}km/h")
+                                        TimelineStat(strings.humidityShort, "${hour.precipitationChance}%")
+                                    }
+                                } else if (isPeak) {
+                                    TimelineStat(strings.peakUv, "6 ${strings.uvLabel(6)}", alignEnd = true)
+                                } else {
+                                    TimelineStat(strings.visibilityShort, "12km", alignEnd = true)
+                                }
+                            }
                         }
                     }
                 }
@@ -953,25 +1196,37 @@ private fun TimelineWeatherSection(
 
 @Composable
 private fun TimelineStat(label: String, value: String, alignEnd: Boolean = false) {
-    Column(horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start) {
+    Column(
+        modifier = Modifier.widthIn(min = 50.dp, max = 58.dp),
+        horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
+    ) {
         Text(
             text = label.uppercase(),
             color = ColorOnSurfaceVariant,
             style = MaterialTheme.typography.bodySmall.copy(
-                fontSize = 9.sp,
+                fontSize = 8.sp,
                 letterSpacing = 0.8.sp,
             ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = value,
             color = ColorOnSurface,
-            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontWeight = FontWeight.Medium,
+                fontSize = 10.sp,
+                lineHeight = 12.sp,
+            ),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
 @Composable
 private fun Next24HoursSection(hourly: List<HourlyForecast>) {
+    val strings = currentStrings()
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -979,12 +1234,12 @@ private fun Next24HoursSection(hourly: List<HourlyForecast>) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Next 24 Hours",
+                text = strings.next24Hours,
                 color = ColorOnSurface.copy(alpha = 0.9f),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
             )
             Text(
-                text = "Today",
+                text = strings.today,
                 color = ColorOnSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -1006,6 +1261,7 @@ private fun HourlyCapsule(
     hour: HourlyForecast,
     isActive: Boolean,
 ) {
+    val strings = currentStrings()
     Surface(
         modifier = Modifier
             .width(64.dp)
@@ -1021,7 +1277,7 @@ private fun HourlyCapsule(
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = if (isActive) "Now" else hour.timeLabel,
+                text = if (isActive) strings.now else hour.timeLabel,
                 color = if (isActive) hour.condition.accent() else ColorOnSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
             )
@@ -1042,13 +1298,14 @@ private fun HourlyCapsule(
 
 @Composable
 private fun SevenDayForecastSection(daily: List<DailyForecast>) {
+    val strings = currentStrings()
     val lowMin = daily.minOfOrNull { it.lowC } ?: 0
     val highMax = daily.maxOfOrNull { it.highC } ?: 1
     val range = (highMax - lowMin).coerceAtLeast(1)
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            text = "7-Day Forecast",
+            text = strings.sevenDayForecast,
             color = ColorOnSurface.copy(alpha = 0.9f),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
         )
@@ -1168,21 +1425,22 @@ private fun ForecastBentoDetails(
     current: CurrentWeather,
     details: WeatherDetails,
 ) {
+    val strings = currentStrings()
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         ForecastDetailCard(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.WaterDrop,
-            title = "Humidity",
+            title = strings.humidity,
             value = "${current.humidity}%",
-            subtitle = "Dew point similar to the current air mass.",
+            subtitle = strings.dewPointLabel(humidityDewPoint(current)),
         )
         ForecastDetailCard(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.Air,
-            title = "Wind",
+            title = strings.wind,
             value = "${details.windKph}",
             suffix = " km/h",
-            subtitle = "Direction: ${details.windDirectionLabel}",
+            subtitle = details.windDirectionLabel,
         )
     }
 }
@@ -1255,6 +1513,7 @@ private fun HeroCard(
     weather: WeatherOverview?,
     onOpenSearch: () -> Unit,
 ) {
+    val strings = currentStrings()
     GlassCard {
         Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(
@@ -1267,7 +1526,7 @@ private fun HeroCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        text = "Atmosfera momentului",
+                        text = strings.currentAtmosphere,
                         style = MaterialTheme.typography.labelLarge,
                         color = TextSecondary,
                     )
@@ -1278,7 +1537,7 @@ private fun HeroCard(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = weather?.current?.summary ?: "Actualizam vremea pentru ${city.name}.",
+                        text = weather?.current?.summary ?: strings.weatherSummary(WeatherCondition.Cloudy, city.name, null, null, null),
                         style = MaterialTheme.typography.bodyLarge,
                         color = TextSecondary,
                     )
@@ -1287,7 +1546,7 @@ private fun HeroCard(
                 IconButton(onClick = onOpenSearch) {
                     Icon(
                         imageVector = Icons.Rounded.Search,
-                        contentDescription = "Schimba orasul",
+                        contentDescription = strings.searchDialogTitle,
                         tint = TextPrimary,
                     )
                 }
@@ -1311,12 +1570,12 @@ private fun HeroCard(
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = current.condition.label(),
+                            text = strings.localizedCondition(current.condition),
                             style = MaterialTheme.typography.titleMedium,
                             color = TextSecondary,
                         )
                         Text(
-                            text = "Se simte ca ${current.feelsLikeC}°",
+                            text = "${strings.today}: ${current.feelsLikeC}\u00B0",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextMuted,
                         )
@@ -1326,18 +1585,18 @@ private fun HeroCard(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         MetricPill(
-                            title = "Umiditate",
+                            title = strings.humidity,
                             value = "${current.humidity}%",
                             modifier = Modifier.weight(1f),
                         )
                         MetricPill(
-                            title = "Vant",
+                            title = strings.wind,
                             value = "${current.windKph} km/h",
                             modifier = Modifier.weight(1f),
                         )
                     }
                     MetricPill(
-                        title = "UV",
+                        title = strings.uvIndex,
                         value = current.uvIndex.toString(),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -1357,6 +1616,7 @@ private fun HeroCard(
 
 @Composable
 private fun HourlyTimeline(hourly: List<HourlyForecast>) {
+    val strings = currentStrings()
     GlassCard {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             hourly.take(10).forEachIndexed { index, hour ->
@@ -1398,13 +1658,13 @@ private fun HourlyTimeline(hourly: List<HourlyForecast>) {
                                     style = MaterialTheme.typography.labelLarge,
                                 )
                                 Text(
-                                    text = hour.condition.label(),
+                                    text = strings.localizedCondition(hour.condition),
                                     color = TextPrimary,
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.SemiBold,
                                 )
                                 Text(
-                                    text = "Ploaie ${hour.precipitationChance}% · Vant ${hour.windKph} km/h",
+                                    text = "${strings.rainfall} ${hour.precipitationChance}% · ${strings.wind} ${hour.windKph} km/h",
                                     color = TextMuted,
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
@@ -1432,6 +1692,7 @@ private fun HourlyTimeline(hourly: List<HourlyForecast>) {
 
 @Composable
 private fun DailyCard(day: DailyForecast) {
+    val strings = currentStrings()
     GlassCard(padding = PaddingValues(18.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1450,12 +1711,12 @@ private fun DailyCard(day: DailyForecast) {
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = day.condition.label(),
+                    text = strings.localizedCondition(day.condition),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Text(
-                    text = "Ploaie ${day.precipitationChance}%",
+                    text = "${strings.rainfall} ${day.precipitationChance}%",
                     color = TextMuted,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -1485,6 +1746,7 @@ private fun LocationCard(
     onClick: () -> Unit,
     onFavoriteToggle: () -> Unit,
 ) {
+    val strings = currentStrings()
     val brush = if (isSelected) {
         Brush.linearGradient(listOf(Color(0x26FFD59B), Color(0x2269D4FF)))
     } else {
@@ -1538,7 +1800,7 @@ private fun LocationCard(
                 IconButton(onClick = onFavoriteToggle) {
                     Icon(
                         imageVector = Icons.Rounded.Favorite,
-                        contentDescription = "Scoate din favorite",
+                        contentDescription = strings.removeFromFavorites,
                         tint = Warm,
                     )
                 }
@@ -1563,6 +1825,7 @@ private fun SearchDialog(
     onCitySelected: (CityOption) -> Unit,
     onFavoriteToggle: (CityOption) -> Unit,
 ) {
+    val strings = currentStrings()
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -1587,12 +1850,12 @@ private fun SearchDialog(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Schimba orasul",
+                        text = strings.searchDialogTitle,
                         color = TextPrimary,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Badge("${uiState.suggestions.size} rezultate")
+                    Badge(strings.searchResultsCount(uiState.suggestions.size))
                 }
 
                 TextField(
@@ -1601,7 +1864,7 @@ private fun SearchDialog(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
                         Text(
-                            text = "Cauta orase din Romania sau din lume",
+                            text = strings.searchDialogHint,
                             color = TextMuted,
                         )
                     },
@@ -1677,7 +1940,7 @@ private fun SearchDialog(
                                         } else {
                                             Icons.Rounded.FavoriteBorder
                                         },
-                                        contentDescription = if (isFavorite) "Scoate din favorite" else "Adauga la favorite",
+                                        contentDescription = if (isFavorite) strings.removeFromFavorites else strings.addToFavorites,
                                         tint = if (isFavorite) Warm else TextSecondary,
                                     )
                                 }
@@ -1692,6 +1955,7 @@ private fun SearchDialog(
 
 @Composable
 private fun AirQualityCard(airQuality: AirQuality) {
+    val strings = currentStrings()
     GlassCard {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(
@@ -1709,7 +1973,7 @@ private fun AirQualityCard(airQuality: AirQuality) {
                         tint = ColorPrimary,
                     )
                     Text(
-                        text = "AIR QUALITY",
+                        text = strings.airQuality,
                         color = TextPrimary.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = FontWeight.Medium,
@@ -1717,7 +1981,7 @@ private fun AirQualityCard(airQuality: AirQuality) {
                         ),
                     )
                 }
-                Badge("Primary: ${airQuality.primaryPollutant}")
+                Badge(strings.primaryPollutant(airQuality.primaryPollutant))
             }
 
             Row(
@@ -1782,6 +2046,7 @@ private fun AirQualityCard(airQuality: AirQuality) {
 
 @Composable
 private fun SunCard(schedule: SunSchedule) {
+    val strings = currentStrings()
     GlassCard {
         Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(
@@ -1795,7 +2060,7 @@ private fun SunCard(schedule: SunSchedule) {
                     modifier = Modifier.size(18.dp),
                 )
                 Text(
-                    text = "SUN SCHEDULE",
+                    text = strings.daylight,
                     color = TextPrimary.copy(alpha = 0.7f),
                     style = MaterialTheme.typography.labelLarge.copy(
                         fontWeight = FontWeight.Bold,
@@ -1851,7 +2116,7 @@ private fun SunCard(schedule: SunSchedule) {
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text("SUNRISE", color = TextMuted, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp))
+                    Text(strings.sunrise, color = TextMuted, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp))
                     Text(
                         text = schedule.sunriseLabel,
                         color = TextPrimary,
@@ -1868,7 +2133,7 @@ private fun SunCard(schedule: SunSchedule) {
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text("DAYLIGHT", color = TextMuted, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp))
+                    Text(strings.daylight, color = TextMuted, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp))
                     Text(
                         text = schedule.daylightDurationLabel,
                         color = TextPrimary,
@@ -1885,7 +2150,7 @@ private fun SunCard(schedule: SunSchedule) {
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text("SUNSET", color = TextMuted, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp))
+                    Text(strings.sunset, color = TextMuted, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp))
                     Text(
                         text = schedule.sunsetLabel,
                         color = TextPrimary,
@@ -1920,12 +2185,13 @@ private fun bezierPoint(
 
 @Composable
 private fun PrimaryMetricsGrid(details: WeatherDetails) {
+    val strings = currentStrings()
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             DetailMetricCard(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.Air,
-                title = "WIND",
+                title = strings.wind,
                 value = details.windKph.toString(),
                 unit = "km/h",
                 caption = details.windDirectionLabel,
@@ -1935,29 +2201,29 @@ private fun PrimaryMetricsGrid(details: WeatherDetails) {
             DetailMetricCard(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.WaterDrop,
-                title = "RAINFALL",
+                title = strings.rainfall,
                 value = details.precipitationChance.toString(),
                 unit = "%",
-                caption = rainfallCaption(details.precipitationChance),
+                caption = strings.rainfallCaption(details.precipitationChance),
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             DetailMetricCard(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.Visibility,
-                title = "VISIBILITY",
+                title = strings.visibility,
                 value = details.visibilityKm.toString(),
                 unit = "km",
-                caption = visibilityCaption(details.visibilityKm),
+                caption = strings.visibilityCaption(details.visibilityKm),
                 captionColor = ColorPrimary,
             )
             DetailMetricCard(
                 modifier = Modifier.weight(1f),
                 icon = Icons.Rounded.Speed,
-                title = "PRESSURE",
+                title = strings.pressure,
                 value = details.pressureHpa.toString(),
                 unit = "hPa",
-                caption = pressureCaption(details.pressureHpa),
+                caption = strings.pressureCaption(details.pressureHpa),
             )
         }
     }
@@ -1965,22 +2231,23 @@ private fun PrimaryMetricsGrid(details: WeatherDetails) {
 
 @Composable
 private fun BonusMetricsGrid(details: WeatherDetails, current: CurrentWeather) {
+    val strings = currentStrings()
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         DetailMetricCard(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.WaterDrop,
-            title = "HUMIDITY",
+            title = strings.humidity,
             value = details.humidity.toString(),
             unit = "%",
-            caption = "Dew point: ${humidityDewPoint(current)}°",
+            caption = strings.dewPointLabel(humidityDewPoint(current)),
         )
         DetailMetricCard(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.WbSunny,
-            title = "UV INDEX",
+            title = strings.uvIndex,
             value = details.uvIndex.toString(),
-            unit = uvLabel(details.uvIndex),
-            caption = uvRecommendation(details.uvIndex),
+            unit = strings.uvLabel(details.uvIndex),
+            caption = strings.uvRecommendation(details.uvIndex),
         )
     }
 }
@@ -2060,42 +2327,7 @@ private fun DetailMetricCard(
     }
 }
 
-private fun rainfallCaption(chance: Int): String = when {
-    chance >= 70 -> "Averse probabile"
-    chance >= 30 -> "Posibile ploi scurte"
-    chance > 0 -> "Ploaie usoara posibila"
-    else -> "Nu se asteapta ploaie"
-}
-
-private fun visibilityCaption(visibilityKm: Int): String = when {
-    visibilityKm >= 10 -> "Clear view"
-    visibilityKm >= 6 -> "Vizibilitate buna"
-    visibilityKm >= 3 -> "Vizibilitate moderata"
-    else -> "Vizibilitate redusa"
-}
-
-private fun pressureCaption(pressureHpa: Int): String = when {
-    pressureHpa < 1005 -> "Scazuta"
-    pressureHpa > 1020 -> "Ridicata"
-    else -> "Steady"
-}
-
 private fun humidityDewPoint(current: CurrentWeather): Int = (current.feelsLikeC - 2).coerceAtLeast(-10)
-
-private fun uvLabel(uvIndex: Int): String = when {
-    uvIndex <= 2 -> "Low"
-    uvIndex <= 5 -> "Moderate"
-    uvIndex <= 7 -> "High"
-    uvIndex <= 10 -> "Very High"
-    else -> "Extreme"
-}
-
-private fun uvRecommendation(uvIndex: Int): String = when {
-    uvIndex <= 2 -> "Protectie minima necesara"
-    uvIndex <= 5 -> "SPF 30 recomandat"
-    uvIndex <= 7 -> "Evita expunerea lunga"
-    else -> "Stai la umbra la pranz"
-}
 
 @Composable
 private fun SectionHeader(title: String, subtitle: String) {
@@ -2129,11 +2361,122 @@ private fun SearchLauncher(label: String, onClick: () -> Unit) {
 }
 
 @Composable
+private fun AppMenuDialog(
+    label: String,
+    onDismiss: () -> Unit,
+    onLanguagesClick: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 92.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+            contentAlignment = Alignment.TopStart,
+        ) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = ColorSurfaceContainerHigh.copy(alpha = 0.94f),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .width(220.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .clickable(onClick = onLanguagesClick)
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = label,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    )
+                    Icon(
+                        imageVector = Icons.Rounded.Settings,
+                        contentDescription = null,
+                        tint = ColorPrimary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageDialog(
+    selectedLanguage: AppLanguage,
+    onDismiss: () -> Unit,
+    onLanguageSelected: (AppLanguage) -> Unit,
+) {
+    val strings = currentStrings()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(28.dp),
+            color = ColorSurfaceContainerHigh.copy(alpha = 0.96f),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(
+                    text = strings.languageDialogTitle,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Light),
+                )
+                AppLanguage.entries.forEach { language ->
+                    val selected = language == selectedLanguage
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { onLanguageSelected(language) },
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (selected) ColorPrimary.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.04f),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = language.nativeLabel,
+                                color = if (selected) ColorPrimary else TextPrimary,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                            )
+                            if (selected) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(ColorPrimary),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun ErrorCard(message: String, actionLabel: String, onAction: () -> Unit) {
+    val strings = currentStrings()
     GlassCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = "Momentan nu pot afisa vremea",
+                text = strings.unavailableWeather,
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
@@ -2150,6 +2493,7 @@ private fun BottomTabs(
     onTabSelected: (HomeTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val strings = currentStrings()
     val items = listOf(
         HomeTab.Forecast to Icons.Rounded.Cloud,
         HomeTab.Locations to Icons.Rounded.LocationOn,
@@ -2189,12 +2533,20 @@ private fun BottomTabs(
                         }
                         Icon(
                             imageVector = icon,
-                            contentDescription = tab.title,
+                            contentDescription = when (tab) {
+                                HomeTab.Forecast -> strings.tabForecast
+                                HomeTab.Locations -> strings.tabLocations
+                                HomeTab.Details -> strings.tabDetails
+                            },
                             tint = if (selected) Color(0xFF93C5FD) else Color(0xFF64748B),
                         )
                     }
                     Text(
-                        text = tab.title,
+                        text = when (tab) {
+                            HomeTab.Forecast -> strings.tabForecast
+                            HomeTab.Locations -> strings.tabLocations
+                            HomeTab.Details -> strings.tabDetails
+                        },
                         color = if (selected) Color(0xFFBFDBFE) else Color(0xFF64748B),
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontSize = 11.sp,
@@ -2231,6 +2583,7 @@ private fun ConditionBadge(
     size: Dp,
     iconSize: Dp,
 ) {
+    val strings = currentStrings()
     Box(
         modifier = Modifier
             .size(size)
@@ -2253,7 +2606,7 @@ private fun ConditionBadge(
         )
         Icon(
             imageVector = condition.icon(),
-            contentDescription = condition.label(),
+            contentDescription = strings.localizedCondition(condition),
             tint = condition.accent(),
             modifier = Modifier.size(iconSize),
         )
@@ -2442,3 +2795,5 @@ private fun WeatherCondition.mutedAccent(): Color = when (this) {
     WeatherCondition.Snow -> Color(0xFFE5EEF6)
     WeatherCondition.Mist -> Color(0xFFB1B5BB)
 }
+
+

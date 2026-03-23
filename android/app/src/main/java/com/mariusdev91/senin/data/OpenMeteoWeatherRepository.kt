@@ -1,5 +1,7 @@
 package com.mariusdev91.senin.data
 
+import com.mariusdev91.senin.i18n.AppLanguage
+import com.mariusdev91.senin.i18n.AppStrings
 import com.mariusdev91.senin.model.AirQuality
 import com.mariusdev91.senin.model.CityOption
 import com.mariusdev91.senin.model.CurrentWeather
@@ -43,7 +45,7 @@ class OpenMeteoWeatherRepository : WeatherRepository {
 
     override fun favoriteCities(): List<CityOption> = favorites
 
-    override suspend fun searchCities(query: String): List<CityOption> = withContext(Dispatchers.IO) {
+    override suspend fun searchCities(query: String, language: AppLanguage): List<CityOption> = withContext(Dispatchers.IO) {
         val normalized = query.trim()
         if (normalized.isBlank()) return@withContext favorites
         if (normalized.length < 2) {
@@ -58,7 +60,7 @@ class OpenMeteoWeatherRepository : WeatherRepository {
             append("https://geocoding-api.open-meteo.com/v1/search?")
             append("name=").append(encoded)
             append("&count=12")
-            append("&language=ro")
+            append("&language=").append(language.code)
             append("&format=json")
         }
 
@@ -72,7 +74,8 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         }.distinctBy { "${it.name}|${it.countryCode}|${it.latitude}|${it.longitude}" }
     }
 
-    override suspend fun currentFor(city: CityOption): SavedLocationPreview = withContext(Dispatchers.IO) {
+    override suspend fun currentFor(city: CityOption, language: AppLanguage): SavedLocationPreview = withContext(Dispatchers.IO) {
+        val strings = AppStrings(language)
         val url = buildString {
             append("https://api.open-meteo.com/v1/forecast?")
             append("latitude=").append(city.latitude)
@@ -88,13 +91,13 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         SavedLocationPreview(
             cityId = city.id,
             localTimeLabel = current.optString("time").toHourLabel(),
-            conditionLabel = current.optInt("weather_code").toWeatherCondition().toLabel(),
+            conditionLabel = strings.localizedCondition(current.optInt("weather_code").toWeatherCondition()),
             condition = current.optInt("weather_code").toWeatherCondition(),
             temperatureC = current.optRoundedInt("temperature_2m"),
         )
     }
 
-    override suspend fun weatherFor(city: CityOption): WeatherOverview = withContext(Dispatchers.IO) {
+    override suspend fun weatherFor(city: CityOption, language: AppLanguage): WeatherOverview = withContext(Dispatchers.IO) {
         val forecastUrl = buildString {
             append("https://api.open-meteo.com/v1/forecast?")
             append("latitude=").append(city.latitude)
@@ -108,11 +111,12 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         }
 
         val forecast = getJson(forecastUrl)
-        val airQuality = fetchAirQuality(city)
-        forecast.toWeatherOverview(city, airQuality)
+        val strings = AppStrings(language)
+        val airQuality = fetchAirQuality(city, strings)
+        forecast.toWeatherOverview(city, airQuality, strings)
     }
 
-    private fun fetchAirQuality(city: CityOption): AirQuality {
+    private fun fetchAirQuality(city: CityOption, strings: AppStrings): AirQuality {
         return runCatching {
             val url = buildString {
                 append("https://air-quality-api.open-meteo.com/v1/air-quality?")
@@ -128,19 +132,20 @@ class OpenMeteoWeatherRepository : WeatherRepository {
 
             val aqi = current.optRoundedInt("us_aqi")
             val ozone = current.optFiniteDouble("ozone")?.roundToInt() ?: 0
-            val category = aqiCategory(aqi)
+            val category = strings.aqiCategory(aqi)
             AirQuality(
                 aqi = aqi,
                 category = category,
-                primaryPollutant = if (ozone > 0) "O₃" else "AQI",
-                description = aqiDescription(category),
+                primaryPollutant = if (ozone > 0) "O3" else "AQI",
+                description = strings.aqiDescription(category),
             )
         }.getOrElse {
+            val unknown = strings.aqiCategory(0)
             AirQuality(
                 aqi = 0,
-                category = "Necunoscut",
+                category = unknown,
                 primaryPollutant = "AQI",
-                description = "Datele pentru calitatea aerului nu sunt disponibile momentan.",
+                description = strings.aqiDescription(unknown),
             )
         }
     }
@@ -198,17 +203,27 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         )
     }
 
-    private fun JSONObject.toWeatherOverview(city: CityOption, airQuality: AirQuality): WeatherOverview {
+    private fun JSONObject.toWeatherOverview(
+        city: CityOption,
+        airQuality: AirQuality,
+        strings: AppStrings,
+    ): WeatherOverview {
         val current = optJSONObject("current") ?: throw IOException("Lipseste blocul de vreme curenta.")
         val hourly = optJSONObject("hourly") ?: throw IOException("Lipseste blocul orar.")
         val daily = optJSONObject("daily") ?: throw IOException("Lipseste blocul zilnic.")
 
         val currentCondition = current.optInt("weather_code").toWeatherCondition()
-        val dailyForecast = daily.toDailyForecast()
+        val dailyForecast = daily.toDailyForecast(strings)
         val currentTime = current.optString("time")
-        val hourlyForecast = hourly.toHourlyForecast(currentTime)
+        val hourlyForecast = hourly.toHourlyForecast(currentTime, strings)
         val sunSchedule = daily.toSunSchedule()
-        val headline = currentCondition.summary(city, dailyForecast.firstOrNull())
+        val headline = strings.weatherSummary(
+            condition = currentCondition,
+            cityName = city.name,
+            high = dailyForecast.firstOrNull()?.highC,
+            low = dailyForecast.firstOrNull()?.lowC,
+            precipitation = dailyForecast.firstOrNull()?.precipitationChance,
+        )
 
         return WeatherOverview(
             current = CurrentWeather(
@@ -238,12 +253,15 @@ class OpenMeteoWeatherRepository : WeatherRepository {
                     ?: 0,
                 sunSchedule = sunSchedule,
             ),
-            updatedAtLabel = "Actualizat ${currentTime.toHourLabel()} ${optString("timezone_abbreviation").ifBlank { "" }}".trim(),
-            sourceLabel = "Date live via Open-Meteo",
+            updatedAtLabel = strings.updatedAt(
+                currentTime.toHourLabel(),
+                optString("timezone_abbreviation").ifBlank { "" },
+            ),
+            sourceLabel = strings.sourceLiveOpenMeteo,
         )
     }
 
-    private fun JSONObject.toHourlyForecast(currentTime: String): List<HourlyForecast> {
+    private fun JSONObject.toHourlyForecast(currentTime: String, strings: AppStrings): List<HourlyForecast> {
         val times = optJSONArray("time") ?: JSONArray()
         val temps = optJSONArray("temperature_2m") ?: JSONArray()
         val rain = optJSONArray("precipitation_probability") ?: JSONArray()
@@ -257,7 +275,7 @@ class OpenMeteoWeatherRepository : WeatherRepository {
             for (index in startIndex until endExclusive) {
                 add(
                     HourlyForecast(
-                        timeLabel = if (index == startIndex) "Acum" else times.optString(index).toHourLabel(),
+                        timeLabel = if (index == startIndex) strings.now else times.optString(index).toHourLabel(),
                         temperatureC = temps.optRoundedInt(index),
                         precipitationChance = rain.optRoundedInt(index),
                         windKph = wind.optRoundedInt(index),
@@ -268,7 +286,7 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         }
     }
 
-    private fun JSONObject.toDailyForecast(): List<DailyForecast> {
+    private fun JSONObject.toDailyForecast(strings: AppStrings): List<DailyForecast> {
         val times = optJSONArray("time") ?: JSONArray()
         val highs = optJSONArray("temperature_2m_max") ?: JSONArray()
         val lows = optJSONArray("temperature_2m_min") ?: JSONArray()
@@ -280,7 +298,7 @@ class OpenMeteoWeatherRepository : WeatherRepository {
                 val date = runCatching { LocalDate.parse(times.optString(index)) }.getOrNull() ?: continue
                 add(
                     DailyForecast(
-                        dayLabel = date.toDayLabel(index),
+                        dayLabel = strings.localizedDayLabel(index, date.dayOfWeek),
                         highC = highs.optRoundedInt(index),
                         lowC = lows.optRoundedInt(index),
                         precipitationChance = rain.optRoundedInt(index),
@@ -327,73 +345,11 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         else -> WeatherCondition.Cloudy
     }
 
-    private fun WeatherCondition.toLabel(): String = when (this) {
-        WeatherCondition.Clear -> "Senin"
-        WeatherCondition.PartlyCloudy -> "Cer variabil"
-        WeatherCondition.Cloudy -> "Innorat"
-        WeatherCondition.Rain -> "Ploaie"
-        WeatherCondition.Thunderstorm -> "Furtuna"
-        WeatherCondition.Snow -> "Ninsoare"
-        WeatherCondition.Mist -> "Ceata"
-    }
-
-    private fun WeatherCondition.summary(city: CityOption, today: DailyForecast?): String {
-        val prefix = when (this) {
-            WeatherCondition.Clear -> "Cer senin"
-            WeatherCondition.PartlyCloudy -> "Cer variabil"
-            WeatherCondition.Cloudy -> "Innorat"
-            WeatherCondition.Rain -> "Ploaie sau averse"
-            WeatherCondition.Thunderstorm -> "Instabilitate si furtuni"
-            WeatherCondition.Snow -> "Ninsori usoare"
-            WeatherCondition.Mist -> "Ceata si vizibilitate redusa"
-        }
-
-        return if (today == null) {
-            "$prefix acum in ${city.name}."
-        } else {
-            "$prefix azi in ${city.name}. Max ${today.highC.toDegreesLabel()}, min ${today.lowC.toDegreesLabel()}, ploaie ${today.precipitationChance}%."
-        }
-    }
-
-    private fun aqiCategory(aqi: Int): String = when {
-        aqi <= 0 -> "Necunoscut"
-        aqi <= 50 -> "Bun"
-        aqi <= 100 -> "Moderat"
-        aqi <= 150 -> "Sensibil"
-        aqi <= 200 -> "Slab"
-        aqi <= 300 -> "Foarte slab"
-        else -> "Periculos"
-    }
-
-    private fun aqiDescription(category: String): String = when (category) {
-        "Bun" -> "Calitatea aerului este buna si potrivita pentru activitati afara."
-        "Moderat" -> "Aerul este acceptabil, dar persoanele sensibile ar trebui sa fie atente."
-        "Sensibil" -> "Persoanele sensibile pot simti disconfort in exterior."
-        "Slab" -> "E mai bine sa limitezi activitatile lungi in aer liber."
-        "Foarte slab" -> "Aerul este poluat. Activitatile afara ar trebui scurtate."
-        "Periculos" -> "Calitatea aerului este foarte slaba. Evita expunerea prelungita."
-        else -> "Datele pentru calitatea aerului nu sunt disponibile momentan."
-    }
-
     private fun String.toHourLabel(): String {
         if (isBlank()) return "--:--"
         return runCatching {
             LocalDateTime.parse(this).format(DateTimeFormatter.ofPattern("HH:mm"))
         }.getOrElse { "--:--" }
-    }
-
-    private fun LocalDate.toDayLabel(index: Int): String = when (index) {
-        0 -> "Azi"
-        1 -> "Maine"
-        else -> when (dayOfWeek.value) {
-            1 -> "Luni"
-            2 -> "Marti"
-            3 -> "Miercuri"
-            4 -> "Joi"
-            5 -> "Vineri"
-            6 -> "Sambata"
-            else -> "Duminica"
-        }
     }
 
     private fun Double.toDaylightLabel(): String {
@@ -431,6 +387,4 @@ class OpenMeteoWeatherRepository : WeatherRepository {
         val value = optDouble(index, Double.NaN)
         return if (value.isFinite()) value.roundToInt() else fallback
     }
-
-    private fun Int.toDegreesLabel(): String = "${this}\u00B0"
 }
