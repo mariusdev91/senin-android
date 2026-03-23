@@ -11,6 +11,7 @@ import com.mariusdev91.senin.data.OpenMeteoWeatherRepository
 import com.mariusdev91.senin.data.SelectedCityStore
 import com.mariusdev91.senin.data.WeatherRepository
 import com.mariusdev91.senin.model.CityOption
+import com.mariusdev91.senin.model.SavedLocationPreview
 import com.mariusdev91.senin.model.WeatherOverview
 import java.io.IOException
 import java.net.ConnectException
@@ -25,10 +26,12 @@ data class HomeUiState(
     val selectedCity: CityOption,
     val pendingCity: CityOption? = null,
     val favoriteCities: List<CityOption>,
+    val locationPreviews: Map<String, SavedLocationPreview> = emptyMap(),
     val suggestions: List<CityOption>,
     val weather: WeatherOverview? = null,
     val query: String = "",
     val isLoadingWeather: Boolean = false,
+    val isLoadingLocationPreviews: Boolean = false,
     val isSearching: Boolean = false,
     val errorMessage: String? = null,
     val searchStatusMessage: String? = null,
@@ -42,6 +45,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private var weatherJob: Job? = null
     private var searchJob: Job? = null
+    private var locationPreviewJob: Job? = null
 
     private val initialFavorites = normalizedFavorites(
         if (favoriteCitiesStore.hasStoredFavorites()) {
@@ -58,6 +62,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             favoriteCities = initialFavorites,
             suggestions = initialFavorites,
             isLoadingWeather = true,
+            isLoadingLocationPreviews = initialFavorites.isNotEmpty(),
         ),
     )
         private set
@@ -66,6 +71,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         if (!favoriteCitiesStore.hasStoredFavorites()) {
             favoriteCitiesStore.save(initialFavorites)
         }
+        loadLocationPreviews(initialFavorites)
         refreshWeather(initialSelectedCity, preserveCurrentWeather = false)
     }
 
@@ -79,7 +85,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 query = query,
                 suggestions = favorites,
                 isSearching = false,
-                searchStatusMessage = if (favorites.isEmpty()) "Adaugă orașe la favorite pentru acces rapid." else null,
+                searchStatusMessage = if (favorites.isEmpty()) {
+                    "Adauga orase la favorite pentru acces rapid."
+                } else {
+                    null
+                },
             )
             return
         }
@@ -91,7 +101,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 suggestions = localResults,
                 isSearching = false,
                 searchStatusMessage = if (localResults.isEmpty()) {
-                    "Scrie măcar 2 litere pentru căutare live."
+                    "Scrie macar 2 litere pentru cautare live."
                 } else {
                     null
                 },
@@ -117,9 +127,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 suggestions = results,
                 isSearching = false,
                 searchStatusMessage = when {
-                    results.isEmpty() -> "Nu am găsit niciun oraș pentru \"$normalized\"."
-                    results.size <= favorites.size && results.all { city -> favorites.any { it.id == city.id } } ->
-                        "Momentan îți arăt rezultatele favorite salvate local."
+                    results.isEmpty() -> "Nu am gasit niciun oras pentru \"$normalized\"."
+                    results.size <= favorites.size && results.all { city ->
+                        favorites.any { it.id == city.id }
+                    } -> "Momentan iti arat rezultatele favorite salvate local."
                     else -> null
                 },
             )
@@ -155,17 +166,23 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         uiState = uiState.copy(
             favoriteCities = updatedFavorites,
             suggestions = updatedSuggestionsForFavorites(updatedFavorites),
+            locationPreviews = uiState.locationPreviews.filterKeys { key ->
+                updatedFavorites.any { it.id == key }
+            },
             searchStatusMessage = if (!isFavorite) {
-                "${city.name} a fost adăugat la favorite."
+                "${city.name} a fost adaugat la favorite."
             } else {
                 "${city.name} a fost scos din favorite."
             },
         )
+
+        loadLocationPreviews(updatedFavorites)
     }
 
     fun onRetry() {
         if (uiState.isLoadingWeather) return
         refreshWeather(uiState.selectedCity, preserveCurrentWeather = uiState.weather != null)
+        loadLocationPreviews(uiState.favoriteCities)
     }
 
     private fun refreshWeather(city: CityOption, preserveCurrentWeather: Boolean) {
@@ -199,6 +216,34 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun loadLocationPreviews(cities: List<CityOption>) {
+        locationPreviewJob?.cancel()
+
+        if (cities.isEmpty()) {
+            uiState = uiState.copy(
+                isLoadingLocationPreviews = false,
+                locationPreviews = emptyMap(),
+            )
+            return
+        }
+
+        uiState = uiState.copy(isLoadingLocationPreviews = true)
+
+        locationPreviewJob = viewModelScope.launch {
+            val previews = buildMap {
+                for (city in cities) {
+                    val preview = runSuspendCatching { repository.currentFor(city) }.getOrNull() ?: continue
+                    put(city.id, preview)
+                }
+            }
+
+            uiState = uiState.copy(
+                locationPreviews = previews,
+                isLoadingLocationPreviews = false,
+            )
+        }
+    }
+
     private fun updatedSuggestionsForFavorites(updatedFavorites: List<CityOption>): List<CityOption> {
         val normalizedQuery = uiState.query.trim()
         if (normalizedQuery.isBlank()) return updatedFavorites
@@ -229,10 +274,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         Result.failure(error)
     }
 
-    private fun Throwable.toUserMessage(): String = when (this) {
-        is SocketTimeoutException -> "Actualizarea durează prea mult. Încearcă din nou."
-        is UnknownHostException, is ConnectException -> "Nu am putut contacta serviciul meteo. Verifică internetul."
-        is IOException -> message ?: "Momentan nu pot încărca vremea."
-        else -> "A apărut o eroare neașteptată. Încearcă din nou."
+private fun Throwable.toUserMessage(): String = when (this) {
+        is SocketTimeoutException -> "Actualizarea dureaza prea mult. Incearca din nou."
+        is UnknownHostException, is ConnectException -> "Nu am putut contacta serviciul meteo. Verifica internetul."
+        is IOException -> message ?: "Momentan nu pot incarca vremea."
+        else -> "A aparut o eroare neasteptata. Incearca din nou."
     }
 }

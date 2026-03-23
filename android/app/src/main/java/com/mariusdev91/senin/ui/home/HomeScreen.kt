@@ -1,7 +1,6 @@
-﻿package com.mariusdev91.senin.ui.home
+package com.mariusdev91.senin.ui.home
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,87 +8,110 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Air
 import androidx.compose.material.icons.rounded.Cloud
-import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Grain
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.ModeNight
-import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.MyLocation
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Thunderstorm
-import androidx.compose.material.icons.rounded.Umbrella
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.WbSunny
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.rounded.AddLocationAlt
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.mariusdev91.senin.model.AirQuality
 import com.mariusdev91.senin.model.CityOption
+import com.mariusdev91.senin.model.CurrentWeather
 import com.mariusdev91.senin.model.DailyForecast
 import com.mariusdev91.senin.model.HourlyForecast
+import com.mariusdev91.senin.model.SavedLocationPreview
+import com.mariusdev91.senin.model.SunSchedule
 import com.mariusdev91.senin.model.WeatherCondition
+import com.mariusdev91.senin.model.WeatherDetails
 import com.mariusdev91.senin.model.WeatherOverview
 
-private val HeroCardBackground = Color(0xFFF5EBDD)
-private val HeroPrimaryText = Color(0xFF173046)
-private val HeroSecondaryText = Color(0xFF5C6F81)
-private val HeroAccent = Color(0xFF2C93CB)
-private val HeroBadgeBackground = Color(0xFFDCEFF9)
-private val DialogBackground = Color(0xFFF7F3EB)
-private val DialogPrimaryText = Color(0xFF18324B)
-private val DialogSecondaryText = Color(0xFF65788A)
-private val DialogAccent = Color(0xFF2C93CB)
-private val DialogFieldBackground = Color(0xFFFFFCF7)
-private val DialogChipInactive = Color(0xFFDCE8F0)
-private val DialogChipActive = Color(0xFF18324B)
-private val DialogResultSelected = Color(0xFFDFF0F8)
-private val DialogResultDefaultBadge = Color(0xFFE9F3F8)
+private enum class HomeTab(val title: String) {
+    Forecast("Prognoza"),
+    Locations("Locatii"),
+    Details("Detalii"),
+}
 
-@OptIn(ExperimentalMaterialApi::class)
+private val MidnightStart = Color(0xFF1E3A8A)
+private val MidnightMid = Color(0xFF142B63)
+private val MidnightEnd = Color(0xFF0C0E11)
+private val ColorSurface = Color(0xFF0C0E11)
+private val ColorSurfaceBright = Color(0xFF292C31)
+private val ColorSurfaceContainer = Color(0xFF171A1D)
+private val ColorSurfaceContainerHigh = Color(0xFF1D2024)
+private val ColorSurfaceContainerHighest = Color(0xFF23262A)
+private val ColorPrimary = Color(0xFF80AFFD)
+private val ColorTertiary = Color(0xFFFFB151)
+private val ColorTertiaryDim = Color(0xFFE4942A)
+private val ColorOnSurface = Color(0xFFF9F9FD)
+private val ColorOnSurfaceVariant = Color(0xFFAAABAF)
+private val ColorOutlineVariant = Color(0xFF46484B)
+private val Glass = Color(0x331D2024)
+private val GlassStrong = Color(0x66292C31)
+private val Warm = Color(0xFFFFB151)
+private val Cool = Color(0xFF80AFFD)
+private val Danger = Color(0xFFFF716C)
+private val TextPrimary = ColorOnSurface
+private val TextSecondary = Color(0xFFD7E5EC)
+private val TextMuted = ColorOnSurfaceVariant
+
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
@@ -98,756 +120,1376 @@ fun HomeScreen(
     onFavoriteToggle: (CityOption) -> Unit,
     onRetry: () -> Unit,
 ) {
-    var showCityPicker by remember { mutableStateOf(false) }
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = uiState.isLoadingWeather,
-        onRefresh = onRetry,
-    )
+    var tabIndex by rememberSaveable { mutableIntStateOf(0) }
+    var isSearchOpen by rememberSaveable { mutableStateOf(false) }
+    val activeTab = HomeTab.entries[tabIndex]
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(MidnightStart, MidnightMid, MidnightEnd))),
+    ) {
+        BackdropGlow()
+        NoiseOverlay()
+
+        when (activeTab) {
+            HomeTab.Forecast -> ForecastScreen(
+                uiState = uiState,
+                onOpenSearch = { isSearchOpen = true },
+                onOpenLocations = { tabIndex = HomeTab.Locations.ordinal },
+                onOpenDetails = { tabIndex = HomeTab.Details.ordinal },
+                onRetry = onRetry,
+            )
+
+            HomeTab.Locations -> LocationsScreen(
+                uiState = uiState,
+                onOpenSearch = { isSearchOpen = true },
+                onCitySelected = {
+                    onCitySelected(it)
+                    tabIndex = HomeTab.Forecast.ordinal
+                },
+                onFavoriteToggle = onFavoriteToggle,
+            )
+
+            HomeTab.Details -> DetailsScreen(uiState = uiState)
+        }
+
+        BottomTabs(
+            activeTab = activeTab,
+            onTabSelected = { tabIndex = it.ordinal },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 18.dp, vertical = 18.dp),
+        )
+
+        if (uiState.isLoadingWeather) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x33040B12)),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(color = Warm)
+            }
+        }
+    }
+
+    if (isSearchOpen) {
+        SearchDialog(
+            uiState = uiState,
+            onDismiss = { isSearchOpen = false },
+            onQueryChange = onQueryChange,
+            onCitySelected = {
+                isSearchOpen = false
+                onCitySelected(it)
+                tabIndex = HomeTab.Forecast.ordinal
+            },
+            onFavoriteToggle = onFavoriteToggle,
+        )
+    }
+}
+
+@Composable
+private fun ForecastScreen(
+    uiState: HomeUiState,
+    onOpenSearch: () -> Unit,
+    onOpenLocations: () -> Unit,
+    onOpenDetails: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    val weather = uiState.weather
+    val selectedCity = uiState.pendingCity ?: uiState.selectedCity
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AtmosphereBackground()
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .pullRefresh(pullRefreshState),
+                .padding(top = 76.dp, bottom = 104.dp),
         ) {
+            Box(
+                modifier = Modifier
+                    .offset(x = 31.dp, y = 26.dp)
+                    .width(2.dp)
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                ColorPrimary.copy(alpha = 0.3f),
+                                ColorPrimary.copy(alpha = 0.3f),
+                                Color.Transparent,
+                            ),
+                        ),
+                    ),
+            )
+
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 20.dp, top = 10.dp, end = 20.dp, bottom = 28.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
+                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
-                item {
-                    Header(
-                        selectedCity = uiState.selectedCity,
-                        pendingCity = uiState.pendingCity,
-                        onPickCity = { showCityPicker = true },
-                    )
-                }
-
-                item {
-                    HeroCard(
-                        uiState = uiState,
-                        onRetry = onRetry,
-                    )
-                }
-
-                if (uiState.favoriteCities.isNotEmpty()) {
-                    item { SectionTitle("Orașe favorite") }
+                if (weather == null && uiState.errorMessage != null) {
                     item {
-                        FavoriteCitiesSection(
-                            favoriteCities = uiState.favoriteCities,
-                            selectedCity = uiState.selectedCity,
-                            onCitySelected = onCitySelected,
-                            onFavoriteToggle = onFavoriteToggle,
+                        ErrorCard(
+                            message = uiState.errorMessage,
+                            actionLabel = "Incearca din nou",
+                            onAction = onRetry,
                         )
                     }
                 }
 
-                uiState.weather?.let { weather ->
-                    item { MetricsRow(weather = weather) }
-                    item { SectionTitle("Ritmul de azi") }
-                    item { HourlySection(hourly = weather.hourly) }
-                    item { SectionTitle("Următoarele zile") }
+        if (weather != null) {
+            val visibleHours = weather.hourly.take(8)
+            val peakHourIndex = visibleHours.indexOfFirst { hour ->
+                hour.temperatureC == visibleHours.maxOfOrNull { it.temperatureC }
+            }
 
-                    items(weather.daily) { day ->
-                        DailyForecastCard(day = day)
+            item {
+                TodayOutlookSection(
+                    summary = weather.current.summary,
+                )
+            }
+
+            items(
+                items = visibleHours,
+                key = { it.timeLabel },
+            ) { hour ->
+                val currentIndex = visibleHours.indexOf(hour)
+                val isNow = currentIndex == 0
+                val isPeak = currentIndex == peakHourIndex
+                val sunsetHour = weather.details.sunSchedule.sunsetLabel.take(2)
+                val isSunset = sunsetHour.isNotBlank() && hour.timeLabel.startsWith(sunsetHour)
+
+                TimelineWeatherSection(
+                            hour = hour,
+                            isNow = isNow,
+                            isPeak = isPeak,
+                            isSunset = isSunset,
+                        )
                     }
 
                     item {
-                        Text(
-                            text = weather.sourceLabel,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.7f),
+                        Next24HoursSection(
+                            hourly = weather.hourly.take(24),
+                        )
+                    }
+
+                    item {
+                        SevenDayForecastSection(
+                            daily = weather.daily.take(7),
+                        )
+                    }
+
+                    item {
+                        ForecastBentoDetails(
+                            current = weather.current,
+                            details = weather.details,
                         )
                     }
                 }
             }
-
-            PullRefreshIndicator(
-                refreshing = uiState.isLoadingWeather,
-                state = pullRefreshState,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 12.dp),
-                backgroundColor = DialogBackground,
-                contentColor = HeroAccent,
-            )
         }
 
-        if (showCityPicker) {
-            CityPickerDialog(
-                uiState = uiState,
-                onDismiss = { showCityPicker = false },
-                onQueryChange = onQueryChange,
-                onFavoriteToggle = onFavoriteToggle,
-                onCitySelected = {
-                    onCitySelected(it)
-                    showCityPicker = false
-                },
-            )
-        }
+        ForecastTopBar(
+            city = selectedCity,
+            current = weather?.current,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
     }
 }
 
 @Composable
-private fun AtmosphereBackground() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFFFC57B),
-                        Color(0xFFFF8E63),
-                        Color(0xFF1E5877),
-                        Color(0xFF0D1B2A),
-                    ),
-                ),
-            ),
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val sunriseCenter = Offset(size.width * 0.18f, size.height * 0.12f)
-            val oceanCenter = Offset(size.width * 0.82f, size.height * 0.28f)
-
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFFFFF1C7).copy(alpha = 0.85f), Color.Transparent),
-                    center = sunriseCenter,
-                    radius = size.minDimension * 0.45f,
-                ),
-                radius = size.minDimension * 0.45f,
-                center = sunriseCenter,
-            )
-
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF97D7FF).copy(alpha = 0.35f), Color.Transparent),
-                    center = oceanCenter,
-                    radius = size.minDimension * 0.55f,
-                ),
-                radius = size.minDimension * 0.55f,
-                center = oceanCenter,
-            )
-        }
-    }
-}
-
-@Composable
-private fun Header(
-    selectedCity: CityOption,
-    pendingCity: CityOption?,
-    onPickCity: () -> Unit,
+private fun LocationsScreen(
+    uiState: HomeUiState,
+    onOpenSearch: () -> Unit,
+    onCitySelected: (CityOption) -> Unit,
+    onFavoriteToggle: (CityOption) -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+    Box(modifier = Modifier.fillMaxSize()) {
+        LocationsTopBar(
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 92.dp, bottom = 128.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item {
+                SearchFieldCard(
+                    placeholder = "Cauta un oras",
+                    onClick = onOpenSearch,
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Locatii salvate",
+                        color = ColorOnSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 1.2.sp,
+                        ),
+                    )
+                    Text(
+                        text = "${uiState.favoriteCities.size} orase",
+                        color = ColorOnSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+
+            if (uiState.favoriteCities.isEmpty()) {
+                item {
+                    EmptyLocationsHint()
+                }
+            } else {
+                items(uiState.favoriteCities, key = { it.id }) { city ->
+                    SavedLocationGlassCard(
+                        city = city,
+                        preview = uiState.locationPreviews[city.id],
+                        isSelected = city.id == uiState.selectedCity.id,
+                        onClick = { onCitySelected(city) },
+                        onFavoriteToggle = { onFavoriteToggle(city) },
+                    )
+                }
+
+                item {
+                    EmptyLocationsHint()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailsScreen(uiState: HomeUiState) {
+    val weather = uiState.weather
+    Box(modifier = Modifier.fillMaxSize()) {
+        DetailsTopBar(modifier = Modifier.align(Alignment.TopCenter))
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 92.dp, bottom = 124.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            item {
+                DetailsHeaderSection(
+                    city = uiState.selectedCity,
+                    updatedLabel = weather?.updatedAtLabel,
+                )
+            }
+
+            if (weather == null && uiState.errorMessage != null) {
+                item {
+                    ErrorCard(
+                        message = uiState.errorMessage,
+                        actionLabel = "Inapoi",
+                        onAction = {},
+                    )
+                }
+            }
+
+            if (weather != null) {
+                item { AirQualityCard(weather.details.airQuality) }
+                item { PrimaryMetricsGrid(weather.details) }
+                item { SunCard(weather.details.sunSchedule) }
+                item { BonusMetricsGrid(weather.details, weather.current) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailsTopBar(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color(0xCC0F172A),
+        shape = RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 18.dp),
+            contentAlignment = Alignment.Center,
+        ) {
             Text(
                 text = "Senin",
-                style = MaterialTheme.typography.titleLarge,
-                color = HeroPrimaryText,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = if (pendingCity != null) {
-                    "Pregătesc vremea pentru ${pendingCity.name}"
-                } else {
-                    "Acum în ${selectedCity.name}"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = HeroPrimaryText.copy(alpha = 0.84f),
+                color = ColorOnSurface,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = 2.8.sp,
+                ),
             )
         }
+    }
+}
 
-        Button(
-            onClick = onPickCity,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF14344D).copy(alpha = 0.28f),
-                contentColor = Color.White,
+@Composable
+private fun DetailsHeaderSection(city: CityOption, updatedLabel: String?) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = "DETALII METEO",
+            color = ColorPrimary,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 1.2.sp,
             ),
-            shape = MaterialTheme.shapes.large,
+        )
+        Text(
+            text = city.name,
+            color = TextPrimary,
+            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Light),
+        )
+        Text(
+            text = updatedLabel ?: "Ultima actualizare indisponibila",
+            color = TextMuted,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Light),
+        )
+    }
+}
+
+@Composable
+private fun ForecastTopBar(
+    city: CityOption,
+    current: CurrentWeather?,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color(0xCC0F172A),
+        shape = RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Senin",
+                    color = ColorOnSurface,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Light,
+                        letterSpacing = 2.4.sp,
+                    ),
+                )
+                Text(
+                    text = city.name,
+                    color = ColorPrimary,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = (-0.2).sp,
+                    ),
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = current?.temperatureC?.let { "$it°" } ?: "--°",
+                        color = ColorOnSurface,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Light),
+                    )
+                    Text(
+                        text = current?.condition?.label() ?: "Loading",
+                        color = ColorOnSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Icon(
+                    imageVector = current?.condition?.icon() ?: Icons.Rounded.Cloud,
+                    contentDescription = null,
+                    tint = current?.condition?.accent() ?: ColorPrimary,
+                    modifier = Modifier.size(26.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocationsTopBar(
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color(0xCC0F172A),
+        shape = RoundedCornerShape(bottomStart = 0.dp, bottomEnd = 0.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Senin",
+                color = Color(0xFFF8FAFC),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = 2.8.sp,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchFieldCard(
+    placeholder: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(999.dp))
+            .clickable(onClick = onClick),
+        color = ColorSurfaceContainerHighest.copy(alpha = 0.9f),
+        shape = RoundedCornerShape(999.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = Icons.Rounded.Search,
                 contentDescription = null,
-                modifier = Modifier.size(18.dp),
+                tint = ColorOnSurfaceVariant,
             )
             Text(
-                text = "Schimbă orașul",
-                modifier = Modifier.padding(start = 8.dp),
+                text = placeholder,
+                color = ColorOnSurfaceVariant,
+                style = MaterialTheme.typography.bodyLarge,
             )
         }
     }
+}
+
+@Composable
+private fun SavedLocationGlassCard(
+    city: CityOption,
+    preview: SavedLocationPreview?,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onFavoriteToggle: () -> Unit,
+) {
+    val glow = when (preview?.condition ?: WeatherCondition.Cloudy) {
+        WeatherCondition.Clear -> ColorTertiary.copy(alpha = 0.05f)
+        WeatherCondition.PartlyCloudy -> ColorPrimary.copy(alpha = 0.05f)
+        WeatherCondition.Cloudy -> ColorPrimary.copy(alpha = 0.05f)
+        WeatherCondition.Rain -> ColorPrimary.copy(alpha = 0.08f)
+        WeatherCondition.Thunderstorm -> Danger.copy(alpha = 0.08f)
+        WeatherCondition.Snow -> Color.White.copy(alpha = 0.06f)
+        WeatherCondition.Mist -> Color.White.copy(alpha = 0.04f)
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        color = Color(0x99171A1D),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Box {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(glow, Color.Transparent),
+                        ),
+                    ),
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Rounded.MyLocation,
+                                contentDescription = null,
+                                tint = ColorOnSurfaceVariant,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                        Text(
+                            text = city.name,
+                            color = ColorOnSurface,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Light,
+                                letterSpacing = (-0.6).sp,
+                            ),
+                        )
+                    }
+                    Text(
+                        text = preview?.let { "${it.localTimeLabel} · ${it.conditionLabel}" } ?: city.subtitle,
+                        color = ColorOnSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = (preview?.condition ?: WeatherCondition.Cloudy).icon(),
+                        contentDescription = null,
+                        tint = (preview?.condition ?: WeatherCondition.Cloudy).accent(),
+                        modifier = Modifier.size(38.dp),
+                    )
+                    Text(
+                        text = preview?.temperatureC?.let { "$it°" } ?: "--°",
+                        color = ColorOnSurface,
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            fontWeight = FontWeight.Light,
+                            letterSpacing = (-1.8).sp,
+                        ),
+                    )
+                    IconButton(onClick = onFavoriteToggle) {
+                        Icon(
+                            imageVector = Icons.Rounded.DeleteOutline,
+                            contentDescription = "Scoate din locatii salvate",
+                            tint = Danger,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyLocationsHint() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(ColorSurfaceContainer.copy(alpha = 1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.AddLocationAlt,
+                contentDescription = null,
+                tint = Color(0xFF747579),
+                modifier = Modifier.size(26.dp),
+            )
+        }
+        Text(
+            text = "Adauga mai multe orase pentru a urmari vremea din alte locuri.",
+            color = ColorOnSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(240.dp),
+        )
+    }
+}
+
+@Composable
+private fun TodayOutlookSection(summary: String) {
+    Box(modifier = Modifier.padding(start = 48.dp)) {
+        Box(
+            modifier = Modifier
+                .offset(x = (-23).dp, y = 6.dp)
+                .size(16.dp)
+                .clip(CircleShape)
+                .background(ColorPrimary),
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = (-23).dp, y = 6.dp)
+                .size(16.dp)
+                .clip(CircleShape)
+                .background(Color.Transparent),
+        )
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0x33292C31),
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "TODAY'S OUTLOOK",
+                    color = ColorPrimary,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.8.sp,
+                    ),
+                )
+                Text(
+                    text = summary,
+                    color = ColorOnSurface,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Light),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimelineWeatherSection(
+    hour: HourlyForecast,
+    isNow: Boolean,
+    isPeak: Boolean,
+    isSunset: Boolean,
+) {
+    val dotColor = when {
+        isNow -> ColorPrimary
+        isPeak -> ColorTertiary
+        else -> Color(0xFF374151)
+    }
+    val dotRing = when {
+        isNow -> ColorPrimary.copy(alpha = 0.2f)
+        isPeak -> ColorTertiary.copy(alpha = 0.2f)
+        else -> Color.Transparent
+    }
+    val cardColor = when {
+        isNow -> ColorSurfaceContainerHigh.copy(alpha = 0.40f)
+        isPeak -> ColorTertiary.copy(alpha = 0.10f)
+        else -> ColorSurfaceContainerHigh.copy(alpha = 0.20f)
+    }
+    val cardBorder = when {
+        isPeak -> ColorTertiary.copy(alpha = 0.20f)
+        else -> ColorOutlineVariant.copy(alpha = 0.10f)
+    }
+    val leadingTextColor = if (isNow) ColorOnSurface else ColorOnSurfaceVariant
+
+    Box(modifier = Modifier.padding(start = 48.dp)) {
+        Box(
+            modifier = Modifier
+                .offset(x = (-21).dp, y = 8.dp)
+                .size(if (isNow || isPeak) 12.dp else 12.dp)
+                .clip(CircleShape)
+                .background(dotColor),
+        )
+        if (dotRing != Color.Transparent) {
+            Box(
+                modifier = Modifier
+                    .offset(x = (-25).dp, y = 4.dp)
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(dotRing),
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
+            Column(
+                modifier = Modifier.width(48.dp).padding(top = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = if (isNow) "Now" else hour.timeLabel,
+                    color = leadingTextColor,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                )
+            }
+
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                color = cardColor,
+                contentColor = ColorOnSurface,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                isSunset -> Icons.Rounded.WbSunny
+                                else -> hour.condition.icon()
+                            },
+                            contentDescription = null,
+                            tint = when {
+                                isPeak -> ColorTertiary
+                                isSunset -> ColorOnSurfaceVariant
+                                else -> hour.condition.accent()
+                            },
+                            modifier = Modifier.size(30.dp),
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = "${hour.temperatureC}°",
+                                color = if (isPeak) ColorTertiary else ColorOnSurface,
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                            )
+                            Text(
+                                text = when {
+                                    isPeak -> "Daily High"
+                                    isSunset -> "Sunset"
+                                    else -> hour.condition.label()
+                                },
+                                color = if (isPeak) ColorTertiaryDim else ColorOnSurfaceVariant,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    letterSpacing = 1.1.sp,
+                                    fontWeight = FontWeight.Medium,
+                                ),
+                            )
+                        }
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        if (isNow || (!isPeak && !isSunset)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                                TimelineStat("Wind", "${hour.windKph}km/h")
+                                TimelineStat("Hum", "${hour.precipitationChance}%")
+                            }
+                        } else if (isPeak) {
+                            TimelineStat("Peak UV", "6 High", alignEnd = true)
+                        } else {
+                            TimelineStat("Visibility", "12km", alignEnd = true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimelineStat(label: String, value: String, alignEnd: Boolean = false) {
+    Column(horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start) {
+        Text(
+            text = label.uppercase(),
+            color = ColorOnSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 9.sp,
+                letterSpacing = 0.8.sp,
+            ),
+        )
+        Text(
+            text = value,
+            color = ColorOnSurface,
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+        )
+    }
+}
+
+@Composable
+private fun Next24HoursSection(hourly: List<HourlyForecast>) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Next 24 Hours",
+                color = ColorOnSurface.copy(alpha = 0.9f),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+            )
+            Text(
+                text = "Today",
+                color = ColorOnSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            itemsIndexed(hourly) { index, hour ->
+                HourlyCapsule(
+                    hour = hour,
+                    isActive = index == 0,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HourlyCapsule(
+    hour: HourlyForecast,
+    isActive: Boolean,
+) {
+    Surface(
+        modifier = Modifier
+            .width(64.dp)
+            .height(128.dp),
+        shape = RoundedCornerShape(999.dp),
+        color = if (isActive) ColorPrimary.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.05f),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = if (isActive) "Now" else hour.timeLabel,
+                color = if (isActive) hour.condition.accent() else ColorOnSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+            )
+            Icon(
+                imageVector = hour.condition.icon(),
+                contentDescription = null,
+                tint = if (isActive) hour.condition.accent() else hour.condition.mutedAccent(),
+                modifier = Modifier.size(24.dp),
+            )
+            Text(
+                text = "${hour.temperatureC}°",
+                color = ColorOnSurface,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SevenDayForecastSection(daily: List<DailyForecast>) {
+    val lowMin = daily.minOfOrNull { it.lowC } ?: 0
+    val highMax = daily.maxOfOrNull { it.highC } ?: 1
+    val range = (highMax - lowMin).coerceAtLeast(1)
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = "7-Day Forecast",
+            color = ColorOnSurface.copy(alpha = 0.9f),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+        )
+
+        daily.forEach { day ->
+            val startFraction = (day.lowC - lowMin).toFloat() / range.toFloat()
+            val endFraction = (day.highC - lowMin).toFloat() / range.toFloat()
+            SevenDayRow(
+                day = day,
+                startFraction = startFraction,
+                endFraction = endFraction,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SevenDayRow(
+    day: DailyForecast,
+    startFraction: Float,
+    endFraction: Float,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White.copy(alpha = 0.05f),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = day.dayLabel.shortDayLabel(),
+                modifier = Modifier.width(40.dp),
+                color = ColorOnSurface,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = day.condition.icon(),
+                        contentDescription = null,
+                        tint = day.condition.accent(),
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Text(
+                        text = if (day.precipitationChance > 0) "${day.precipitationChance}%" else "0%",
+                        color = if (day.precipitationChance > 0) Color(0xFF72A1EE) else Color.Transparent,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "${day.highC}°",
+                        modifier = Modifier.width(32.dp),
+                        color = ColorOnSurface,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    )
+                    RangeBar(startFraction = startFraction, endFraction = endFraction)
+                    Text(
+                        text = "${day.lowC}°",
+                        modifier = Modifier.width(32.dp),
+                        color = ColorOnSurfaceVariant,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Light),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RangeBar(startFraction: Float, endFraction: Float) {
+    Box(
+        modifier = Modifier
+            .width(96.dp)
+            .height(4.dp)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.10f)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(endFraction.coerceIn(0f, 1f))
+                .padding(start = (96.dp * startFraction.coerceIn(0f, 1f))),
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = 96.dp * startFraction.coerceIn(0f, 1f))
+                .width((96.dp * (endFraction - startFraction).coerceAtLeast(0.05f)))
+                .height(4.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(ColorPrimary, ColorTertiary),
+                    ),
+                ),
+        )
+    }
+}
+
+@Composable
+private fun ForecastBentoDetails(
+    current: CurrentWeather,
+    details: WeatherDetails,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        ForecastDetailCard(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Rounded.WaterDrop,
+            title = "Humidity",
+            value = "${current.humidity}%",
+            subtitle = "Dew point similar to the current air mass.",
+        )
+        ForecastDetailCard(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Rounded.Air,
+            title = "Wind",
+            value = "${details.windKph}",
+            suffix = " km/h",
+            subtitle = "Direction: ${details.windDirectionLabel}",
+        )
+    }
+}
+
+@Composable
+private fun ForecastDetailCard(
+    modifier: Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    value: String,
+    subtitle: String,
+    suffix: String = "",
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        color = Color.White.copy(alpha = 0.05f),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = ColorOnSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text = title.uppercase(),
+                    color = ColorOnSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall.copy(letterSpacing = 1.5.sp),
+                )
+            }
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = value,
+                    color = ColorOnSurface,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Light),
+                )
+                if (suffix.isNotBlank()) {
+                    Text(
+                        text = suffix,
+                        color = ColorOnSurfaceVariant,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+            }
+            Text(
+                text = subtitle,
+                color = ColorOnSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+private fun String.shortDayLabel(): String = when {
+    length <= 3 -> this
+    startsWith("Mai", ignoreCase = true) -> "Mai"
+    startsWith("Mar", ignoreCase = true) -> "Mar"
+    startsWith("Mie", ignoreCase = true) -> "Mie"
+    else -> take(3)
 }
 
 @Composable
 private fun HeroCard(
-    uiState: HomeUiState,
-    onRetry: () -> Unit,
+    city: CityOption,
+    weather: WeatherOverview?,
+    onOpenSearch: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = HeroCardBackground),
-        shape = MaterialTheme.shapes.extraLarge,
-    ) {
-        Column(
-            modifier = Modifier.padding(22.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+    GlassCard {
+        Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top,
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text(
-                        text = if (uiState.selectedCity.isDefault) "Oradea implicit" else uiState.selectedCity.name,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = HeroPrimaryText,
+                        text = "Atmosfera momentului",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = TextSecondary,
                     )
                     Text(
-                        text = uiState.selectedCity.subtitle,
+                        text = city.name,
+                        style = MaterialTheme.typography.displaySmall,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = weather?.current?.summary ?: "Actualizam vremea pentru ${city.name}.",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = HeroSecondaryText,
+                        color = TextSecondary,
                     )
+                }
+
+                IconButton(onClick = onOpenSearch) {
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        contentDescription = "Schimba orasul",
+                        tint = TextPrimary,
+                    )
+                }
+            }
+
+            val current = weather?.current
+            if (current != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ConditionBadge(condition = current.condition, size = 84.dp, iconSize = 40.dp)
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "${current.temperatureC}°",
+                            style = MaterialTheme.typography.displayLarge,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = current.condition.label(),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = TextSecondary,
+                        )
+                        Text(
+                            text = "Se simte ca ${current.feelsLikeC}°",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextMuted,
+                        )
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        MetricPill(
+                            title = "Umiditate",
+                            value = "${current.humidity}%",
+                            modifier = Modifier.weight(1f),
+                        )
+                        MetricPill(
+                            title = "Vant",
+                            value = "${current.windKph} km/h",
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    MetricPill(
+                        title = "UV",
+                        value = current.uvIndex.toString(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                if (weather.sourceLabel.isNotBlank()) {
                     Text(
-                        text = uiState.weather?.updatedAtLabel ?: "Se pregătesc datele live...",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = HeroAccent,
+                        text = weather.sourceLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
                     )
                 }
+            }
+        }
+    }
+}
 
-                if (uiState.weather != null) {
-                    WeatherConditionBadge(condition = uiState.weather.current.condition)
+@Composable
+private fun HourlyTimeline(hourly: List<HourlyForecast>) {
+    GlassCard {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            hourly.take(10).forEachIndexed { index, hour ->
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column(
+                        modifier = Modifier.width(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(hour.condition.accent()),
+                        )
+                        if (index < 9) {
+                            Spacer(
+                                modifier = Modifier
+                                    .padding(top = 4.dp)
+                                    .width(2.dp)
+                                    .height(68.dp)
+                                    .background(Color(0x28FFFFFF)),
+                            )
+                        }
+                    }
+
+                    InsetCard(modifier = Modifier.weight(1f)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(
+                                    text = hour.timeLabel,
+                                    color = TextSecondary,
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                                Text(
+                                    text = hour.condition.label(),
+                                    color = TextPrimary,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = "Ploaie ${hour.precipitationChance}% · Vant ${hour.windKph} km/h",
+                                    color = TextMuted,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                ConditionBadge(condition = hour.condition, size = 42.dp, iconSize = 20.dp)
+                                Text(
+                                    text = "${hour.temperatureC}°",
+                                    color = TextPrimary,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
+                    }
                 }
             }
+        }
+    }
+}
 
-            when {
-                uiState.isLoadingWeather && uiState.weather == null -> LoadingBlock()
-                uiState.weather != null -> WeatherSummary(weather = uiState.weather)
-            }
-
-            uiState.errorMessage?.let { message ->
-                ErrorCard(
-                    message = message,
-                    onRetry = onRetry,
+@Composable
+private fun DailyCard(day: DailyForecast) {
+    GlassCard(padding = PaddingValues(18.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ConditionBadge(condition = day.condition, size = 58.dp, iconSize = 26.dp)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = day.dayLabel,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = day.condition.label(),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    text = "Ploaie ${day.precipitationChance}%",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
-
-            if (uiState.isLoadingWeather && uiState.weather != null) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = HeroAccent,
-                    )
-                    Text(
-                        text = if (uiState.pendingCity != null) {
-                            "Actualizez pentru ${uiState.pendingCity.name}..."
-                        } else {
-                            "Actualizez vremea live..."
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = HeroSecondaryText,
-                    )
-                }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "${day.highC}° / ${day.lowC}°",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Max / Min",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun FavoriteCitiesSection(
-    favoriteCities: List<CityOption>,
-    selectedCity: CityOption,
-    onCitySelected: (CityOption) -> Unit,
-    onFavoriteToggle: (CityOption) -> Unit,
-) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = PaddingValues(end = 20.dp),
-    ) {
-        items(favoriteCities) { city ->
-            FavoriteCityCard(
-                city = city,
-                isSelected = city.id == selectedCity.id,
-                onClick = { onCitySelected(city) },
-                onRemove = { onFavoriteToggle(city) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun FavoriteCityCard(
+private fun LocationCard(
     city: CityOption,
+    preview: SavedLocationPreview?,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onRemove: () -> Unit,
+    onFavoriteToggle: () -> Unit,
 ) {
-    val cardBrush = if (isSelected) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFFF6E8D8),
-                Color(0xFFDCEFF8),
-            ),
-        )
+    val brush = if (isSelected) {
+        Brush.linearGradient(listOf(Color(0x26FFD59B), Color(0x2269D4FF)))
     } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.20f),
-                Color.White.copy(alpha = 0.10f),
-            ),
-        )
+        Brush.linearGradient(listOf(GlassStrong, Glass))
     }
-    val primaryText = if (isSelected) HeroPrimaryText else Color.White
-    val secondaryText = if (isSelected) HeroSecondaryText else Color.White.copy(alpha = 0.72f)
-    val accent = if (isSelected) HeroAccent else Color(0xFFF8D38E)
-    val border = if (isSelected) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
 
-    Card(
-        modifier = Modifier.clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = border,
-        shape = MaterialTheme.shapes.extraLarge,
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .clickable(onClick = onClick),
+        color = Color.Transparent,
+        shape = RoundedCornerShape(28.dp),
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .background(cardBrush)
-                .width(170.dp)
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .background(brush)
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            ConditionBadge(
+                condition = preview?.condition ?: WeatherCondition.PartlyCloudy,
+                size = 56.dp,
+                iconSize = 26.dp,
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Surface(
-                    color = if (isSelected) Color(0xFF173046).copy(alpha = 0.10f) else Color.White.copy(alpha = 0.10f),
-                    shape = MaterialTheme.shapes.large,
-                ) {
-                    Text(
-                        text = if (city.isDefault) "Default" else "Favorit",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (isSelected) HeroPrimaryText else Color.White,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                    )
-                }
-                IconButton(onClick = onRemove) {
-                    Icon(
-                        imageVector = Icons.Rounded.Favorite,
-                        contentDescription = "Scoate din favorite",
-                        tint = accent,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = city.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = primaryText,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
                 )
                 Text(
                     text = city.subtitle,
+                    color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = secondaryText,
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LoadingBlock() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(28.dp),
-            strokeWidth = 3.dp,
-            color = HeroAccent,
-        )
-        Column {
-            Text(
-                text = "Cer forecast-ul live...",
-                style = MaterialTheme.typography.titleMedium,
-                color = HeroPrimaryText,
-            )
-            Text(
-                text = "Open-Meteo răspunde de obicei foarte repede.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = HeroSecondaryText,
-            )
-        }
-    }
-}
-
-@Composable
-private fun WeatherSummary(weather: WeatherOverview) {
-    val current = weather.current
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        Text(
-            text = current.temperatureC.toDegreesLabel(),
-            style = MaterialTheme.typography.displayLarge,
-            color = HeroPrimaryText,
-        )
-
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = current.condition.label,
-                style = MaterialTheme.typography.headlineSmall,
-                color = HeroPrimaryText,
-            )
-            Text(
-                text = "Se simte ca ${current.feelsLikeC.toDegreesLabel()}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = HeroSecondaryText,
-            )
-        }
-    }
-
-    Text(
-        text = current.summary,
-        style = MaterialTheme.typography.bodyLarge,
-        color = HeroPrimaryText.copy(alpha = 0.82f),
-    )
-}
-
-@Composable
-private fun ErrorCard(
-    message: String,
-    onRetry: () -> Unit,
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE0D2)),
-        shape = MaterialTheme.shapes.large,
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                text = "Nu am putut lua datele live.",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f),
-            )
-            Button(onClick = onRetry) {
-                Icon(
-                    imageVector = Icons.Rounded.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = "Încearcă din nou",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MetricsRow(weather: WeatherOverview) {
-    val current = weather.current
-
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { WeatherMetricCard("Ploaie", "${current.precipitationChance}%", Icons.Rounded.Umbrella) }
-        item { WeatherMetricCard("Vânt", "${current.windKph} km/h", Icons.Rounded.Air) }
-        item { WeatherMetricCard("Umiditate", "${current.humidity}%", Icons.Rounded.WaterDrop) }
-        item { WeatherMetricCard("UV", current.uvIndex.toString(), Icons.Rounded.WbSunny) }
-    }
-}
-
-@Composable
-private fun WeatherMetricCard(
-    label: String,
-    value: String,
-    icon: ImageVector,
-) {
-    Card(
-        modifier = Modifier.width(128.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.14f)),
-        shape = MaterialTheme.shapes.large,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp),
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.72f),
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleLarge,
-        color = Color.White,
-        modifier = Modifier.padding(top = 4.dp),
-    )
-}
-
-@Composable
-private fun HourlySection(hourly: List<HourlyForecast>) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = PaddingValues(end = 20.dp),
-    ) {
-        items(hourly) { hour ->
-            HourlyForecastCard(
-                hour = hour,
-                isCurrent = hour.timeLabel == "Acum",
-            )
-        }
-    }
-}
-
-@Composable
-private fun HourlyForecastCard(
-    hour: HourlyForecast,
-    isCurrent: Boolean,
-) {
-    val cardBrush = if (isCurrent) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFFF6E8D8),
-                Color(0xFFE5F2F8),
-            ),
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.20f),
-                Color.White.copy(alpha = 0.08f),
-            ),
-        )
-    }
-
-    val primaryText = if (isCurrent) HeroPrimaryText else Color.White
-    val secondaryText = if (isCurrent) HeroSecondaryText else Color.White.copy(alpha = 0.72f)
-    val tertiaryText = if (isCurrent) HeroSecondaryText.copy(alpha = 0.88f) else Color.White.copy(alpha = 0.6f)
-    val accent = if (isCurrent) HeroAccent else Color(0xFFF9D58B)
-    val border = if (isCurrent) {
-        null
-    } else {
-        BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
-    }
-
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = border,
-        shape = MaterialTheme.shapes.extraLarge,
-    ) {
-        Column(
-            modifier = Modifier
-                .background(cardBrush)
-                .width(if (isCurrent) 156.dp else 132.dp)
-                .padding(horizontal = 16.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Text(
-                text = hour.timeLabel,
-                style = MaterialTheme.typography.labelLarge,
-                color = accent,
-            )
-            Icon(
-                imageVector = hour.condition.icon,
-                contentDescription = null,
-                tint = primaryText,
-                modifier = Modifier.size(if (isCurrent) 30.dp else 26.dp),
-            )
-            Text(
-                text = hour.temperatureC.toDegreesLabel(),
-                style = if (isCurrent) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleLarge,
-                color = primaryText,
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "Ploaie ${hour.precipitationChance}%",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = secondaryText,
-                )
-                Text(
-                    text = "Vânt ${hour.windKph} km/h",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tertiaryText,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DailyForecastCard(day: DailyForecast) {
-    val isToday = day.dayLabel == "Azi"
-    val cardBrush = if (isToday) {
-        Brush.linearGradient(
-            colors = listOf(
-                Color(0xFFF3E4D1),
-                Color(0xFFD8EAF5),
-            ),
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.18f),
-                Color.White.copy(alpha = 0.10f),
-            ),
-        )
-    }
-    val primaryText = if (isToday) HeroPrimaryText else Color.White
-    val secondaryText = if (isToday) HeroSecondaryText else Color.White.copy(alpha = 0.72f)
-    val accent = if (isToday) HeroAccent else Color(0xFFF8D38E)
-    val iconBubble = if (isToday) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.12f)
-    val chipBackground = if (isToday) Color(0xFF173046).copy(alpha = 0.10f) else Color.White.copy(alpha = 0.10f)
-    val chipText = if (isToday) HeroPrimaryText else Color.White
-    val border = if (isToday) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.08f))
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = border,
-        shape = MaterialTheme.shapes.extraLarge,
-    ) {
-        Column(
-            modifier = Modifier
-                .background(cardBrush)
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (preview != null) {
                     Text(
-                        text = day.dayLabel,
-                        style = if (isToday) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
-                        color = primaryText,
-                    )
-                    Text(
-                        text = day.condition.label,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = secondaryText,
+                        text = "${preview.localTimeLabel} · ${preview.conditionLabel}",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
-
-                Surface(
-                    color = chipBackground,
-                    shape = MaterialTheme.shapes.large,
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalAlignment = Alignment.End,
-                    ) {
-                        Text(
-                            text = "${day.highC.toDegreesLabel()} / ${day.lowC.toDegreesLabel()}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = chipText,
-                        )
-                        Text(
-                            text = "Max / Min",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = secondaryText,
-                        )
-                    }
-                }
             }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    modifier = Modifier.padding(end = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(iconBubble)
-                            .padding(12.dp),
-                    ) {
-                        Icon(
-                            imageVector = day.condition.icon,
-                            contentDescription = null,
-                            tint = primaryText,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-
-                    Text(
-                        text = if (isToday) "Restul zilei" else "Pe scurt",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = secondaryText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+            Column(horizontalAlignment = Alignment.End) {
+                IconButton(onClick = onFavoriteToggle) {
+                    Icon(
+                        imageVector = Icons.Rounded.Favorite,
+                        contentDescription = "Scoate din favorite",
+                        tint = Warm,
                     )
                 }
-
-                Surface(
-                    color = chipBackground,
-                    shape = MaterialTheme.shapes.large,
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "Ploaie",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = secondaryText,
-                            maxLines = 1,
-                        )
-                        Text(
-                            text = "${day.precipitationChance}%",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = accent,
-                            maxLines = 1,
-                        )
-                    }
+                if (preview != null) {
+                    Text(
+                        text = "${preview.temperatureC}°",
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
         }
@@ -855,45 +1497,29 @@ private fun DailyForecastCard(day: DailyForecast) {
 }
 
 @Composable
-private fun WeatherConditionBadge(condition: WeatherCondition) {
-    Surface(
-        color = HeroBadgeBackground,
-        shape = MaterialTheme.shapes.large,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(92.dp)
-                .padding(10.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = condition.icon,
-                contentDescription = condition.label,
-                tint = HeroAccent,
-                modifier = Modifier.size(34.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun CityPickerDialog(
+private fun SearchDialog(
     uiState: HomeUiState,
     onDismiss: () -> Unit,
     onQueryChange: (String) -> Unit,
-    onFavoriteToggle: (CityOption) -> Unit,
     onCitySelected: (CityOption) -> Unit,
+    onFavoriteToggle: (CityOption) -> Unit,
 ) {
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
         Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = DialogBackground,
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding(),
+                .padding(12.dp)
+                .heightIn(max = 720.dp),
+            color = Color(0xFF10253A),
+            shape = RoundedCornerShape(32.dp),
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Row(
@@ -901,114 +1527,103 @@ private fun CityPickerDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column {
-                        Text(
-                            text = "Schimbă orașul",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = DialogPrimaryText,
-                        )
-                        Text(
-                            text = "România mai întâi, apoi orice oraș important din lume.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = DialogSecondaryText,
-                        )
-                    }
-
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            imageVector = Icons.Rounded.Close,
-                            contentDescription = null,
-                            tint = DialogAccent,
-                        )
-                    }
+                    Text(
+                        text = "Schimba orasul",
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Badge("${uiState.suggestions.size} rezultate")
                 }
 
-                OutlinedTextField(
+                TextField(
                     value = uiState.query,
                     onValueChange = onQueryChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Caută oraș") },
-                    placeholder = { Text("Oradea, Cluj-Napoca, London, Tokyo...") },
+                    placeholder = {
+                        Text(
+                            text = "Cauta orase din Romania sau din lume",
+                            color = TextMuted,
+                        )
+                    },
+                    singleLine = true,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Rounded.Search,
                             contentDescription = null,
+                            tint = TextSecondary,
                         )
                     },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = DialogFieldBackground,
-                        unfocusedContainerColor = DialogFieldBackground,
-                        disabledContainerColor = DialogFieldBackground,
-                        focusedTextColor = DialogPrimaryText,
-                        unfocusedTextColor = DialogPrimaryText,
-                        cursorColor = DialogAccent,
-                        focusedBorderColor = DialogAccent,
-                        unfocusedBorderColor = DialogAccent.copy(alpha = 0.45f),
-                        focusedLabelColor = DialogAccent,
-                        unfocusedLabelColor = DialogSecondaryText,
-                        focusedPlaceholderColor = DialogSecondaryText.copy(alpha = 0.8f),
-                        unfocusedPlaceholderColor = DialogSecondaryText.copy(alpha = 0.8f),
-                        focusedLeadingIconColor = DialogAccent,
-                        unfocusedLeadingIconColor = DialogSecondaryText,
-                    )
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = ColorSurfaceContainerHighest.copy(alpha = 0.88f),
+                        unfocusedContainerColor = ColorSurfaceContainerHighest.copy(alpha = 0.72f),
+                        disabledContainerColor = ColorSurfaceContainerHighest.copy(alpha = 0.72f),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        disabledTextColor = TextPrimary,
+                        cursorColor = Warm,
+                    ),
+                    shape = RoundedCornerShape(28.dp),
                 )
 
-                uiState.searchStatusMessage?.let { message ->
+                if (uiState.searchStatusMessage != null) {
                     Text(
-                        text = message,
+                        text = uiState.searchStatusMessage,
+                        color = TextMuted,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = DialogSecondaryText,
                     )
                 }
-
-                Text(
-                    text = "Favorite rapide",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = DialogPrimaryText,
-                )
-
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(uiState.favoriteCities) { city ->
-                        AssistChip(
-                            onClick = { onCitySelected(city) },
-                            label = { Text(city.name) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = if (city.id == uiState.selectedCity.id) {
-                                    DialogChipActive
-                                } else {
-                                    DialogChipInactive
-                                },
-                                labelColor = if (city.id == uiState.selectedCity.id) {
-                                    Color.White
-                                } else {
-                                    DialogPrimaryText
-                                },
-                            ),
-                        )
-                    }
-                }
-
-                Text(
-                    text = "Rezultate",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = DialogPrimaryText,
-                )
 
                 LazyColumn(
-                    modifier = Modifier.height(300.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(bottom = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(uiState.suggestions) { city ->
+                    items(uiState.suggestions, key = { it.id }) { city ->
                         val isFavorite = uiState.favoriteCities.any { it.id == city.id }
-                        CitySuggestionRow(
-                            city = city,
-                            isSelected = city.id == uiState.selectedCity.id,
-                            isFavorite = isFavorite,
-                            onFavoriteToggle = { onFavoriteToggle(city) },
-                            onClick = { onCitySelected(city) },
-                        )
+                        InsetCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onCitySelected(city) },
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Text(
+                                        text = city.name,
+                                        color = TextPrimary,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        text = city.subtitle,
+                                        color = TextSecondary,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                                IconButton(onClick = { onFavoriteToggle(city) }) {
+                                    Icon(
+                                        imageVector = if (isFavorite) {
+                                            Icons.Rounded.Favorite
+                                        } else {
+                                            Icons.Rounded.FavoriteBorder
+                                        },
+                                        contentDescription = if (isFavorite) "Scoate din favorite" else "Adauga la favorite",
+                                        tint = if (isFavorite) Warm else TextSecondary,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1017,66 +1632,205 @@ private fun CityPickerDialog(
 }
 
 @Composable
-private fun CitySuggestionRow(
-    city: CityOption,
-    isSelected: Boolean,
-    isFavorite: Boolean,
-    onFavoriteToggle: () -> Unit,
-    onClick: () -> Unit,
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                DialogResultSelected
-            } else {
-                Color.White
-            },
-        ),
-        shape = MaterialTheme.shapes.large,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text(
-                    text = city.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = DialogPrimaryText,
-                )
-                Text(
-                    text = city.subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = DialogSecondaryText,
-                )
+private fun AirQualityCard(airQuality: AirQuality) {
+    GlassCard {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Air,
+                        contentDescription = null,
+                        tint = ColorPrimary,
+                    )
+                    Text(
+                        text = "AIR QUALITY",
+                        color = TextPrimary.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 1.2.sp,
+                        ),
+                    )
+                }
+                Badge("Primary: ${airQuality.primaryPollutant}")
             }
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Bottom,
             ) {
-                if (city.isDefault) {
-                    AssistChip(
-                        onClick = onClick,
-                        label = { Text("Default") },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = DialogResultDefaultBadge,
-                            labelColor = DialogPrimaryText,
+                Text(
+                    text = airQuality.aqi.toString(),
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Light),
+                )
+                Text(
+                    text = "- ${airQuality.category}",
+                    color = ColorTertiary,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(ColorSurfaceContainerHighest),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth((airQuality.aqi.coerceIn(0, 300) / 300f).coerceAtLeast(0.06f))
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Brush.horizontalGradient(listOf(ColorPrimary, ColorTertiary))),
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                listOf("0", "50", "100", "150", "200", "300+").forEach { tick ->
+                    Text(
+                        text = tick,
+                        color = TextMuted,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.1.sp,
                         ),
                     )
                 }
+            }
 
-                IconButton(onClick = onFavoriteToggle) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        contentDescription = if (isFavorite) "Scoate din favorite" else "Adaugă la favorite",
-                        tint = if (isFavorite) DialogAccent else DialogSecondaryText,
+            Text(
+                text = airQuality.description,
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodyMedium,
+                lineHeight = 20.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SunCard(schedule: SunSchedule) {
+    GlassCard {
+        Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.WbSunny,
+                    contentDescription = null,
+                    tint = TextPrimary.copy(alpha = 0.7f),
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "SUN SCHEDULE",
+                    color = TextPrimary.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp,
+                    ),
+                )
+            }
+
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(124.dp),
+            ) {
+                val baseline = size.height * 0.78f
+                val start = Offset(size.width * 0.02f, baseline)
+                val end = Offset(size.width * 0.98f, baseline)
+                val control1 = Offset(size.width * 0.30f, size.height * -0.10f)
+                val control2 = Offset(size.width * 0.70f, size.height * -0.10f)
+                val path = Path().apply {
+                    moveTo(start.x, start.y)
+                    cubicTo(control1.x, control1.y, control2.x, control2.y, end.x, end.y)
+                }
+                drawPath(
+                    path = path,
+                    color = Color(0x26FFFFFF),
+                    style = Stroke(width = 3f, cap = StrokeCap.Round),
+                )
+                drawLine(
+                    color = Color(0x24FFFFFF),
+                    start = start,
+                    end = end,
+                    strokeWidth = 2f,
+                    cap = StrokeCap.Round,
+                )
+                val sun = bezierPoint(start, control1, control2, end, 0.70f)
+                drawPath(
+                    path = Path().apply {
+                        moveTo(start.x, baseline)
+                        cubicTo(control1.x, control1.y, control2.x, control2.y, sun.x, sun.y)
+                    },
+                    color = ColorTertiary,
+                    style = Stroke(width = 4f, cap = StrokeCap.Round),
+                )
+                drawCircle(color = ColorTertiary.copy(alpha = 0.2f), radius = 24f, center = sun)
+                drawCircle(color = ColorTertiary, radius = 11f, center = sun)
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text("SUNRISE", color = TextMuted, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp))
+                    Text(
+                        text = schedule.sunriseLabel,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Light),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(38.dp)
+                        .background(Color(0x14FFFFFF)),
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text("DAYLIGHT", color = TextMuted, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp))
+                    Text(
+                        text = schedule.daylightDurationLabel,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Light),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(38.dp)
+                        .background(Color(0x14FFFFFF)),
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text("SUNSET", color = TextMuted, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp))
+                    Text(
+                        text = schedule.sunsetLabel,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Light),
                     )
                 }
             }
@@ -1084,27 +1838,548 @@ private fun CitySuggestionRow(
     }
 }
 
-private val WeatherCondition.icon: ImageVector
-    get() = when (this) {
-        WeatherCondition.Clear -> Icons.Rounded.WbSunny
-        WeatherCondition.PartlyCloudy -> Icons.Rounded.WbSunny
-        WeatherCondition.Cloudy -> Icons.Rounded.Cloud
-        WeatherCondition.Rain -> Icons.Rounded.Umbrella
-        WeatherCondition.Thunderstorm -> Icons.Rounded.Thunderstorm
-        WeatherCondition.Snow -> Icons.Rounded.ModeNight
-        WeatherCondition.Mist -> Icons.Rounded.Cloud
+private fun bezierPoint(
+    p0: Offset,
+    p1: Offset,
+    p2: Offset,
+    p3: Offset,
+    t: Float,
+): Offset {
+    val oneMinus = 1f - t
+    val x =
+        oneMinus * oneMinus * oneMinus * p0.x +
+            3f * oneMinus * oneMinus * t * p1.x +
+            3f * oneMinus * t * t * p2.x +
+            t * t * t * p3.x
+    val y =
+        oneMinus * oneMinus * oneMinus * p0.y +
+            3f * oneMinus * oneMinus * t * p1.y +
+            3f * oneMinus * t * t * p2.y +
+            t * t * t * p3.y
+    return Offset(x, y)
+}
+
+@Composable
+private fun PrimaryMetricsGrid(details: WeatherDetails) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            DetailMetricCard(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Rounded.Air,
+                title = "WIND",
+                value = details.windKph.toString(),
+                unit = "km/h",
+                caption = details.windDirectionLabel,
+                accentIcon = Icons.Rounded.LocationOn,
+                accentText = details.windDirectionLabel,
+            )
+            DetailMetricCard(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Rounded.WaterDrop,
+                title = "RAINFALL",
+                value = details.precipitationChance.toString(),
+                unit = "%",
+                caption = rainfallCaption(details.precipitationChance),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            DetailMetricCard(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Rounded.Visibility,
+                title = "VISIBILITY",
+                value = details.visibilityKm.toString(),
+                unit = "km",
+                caption = visibilityCaption(details.visibilityKm),
+                captionColor = ColorPrimary,
+            )
+            DetailMetricCard(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Rounded.Speed,
+                title = "PRESSURE",
+                value = details.pressureHpa.toString(),
+                unit = "hPa",
+                caption = pressureCaption(details.pressureHpa),
+            )
+        }
     }
+}
 
-private val WeatherCondition.label: String
-    get() = when (this) {
-        WeatherCondition.Clear -> "Senin"
-        WeatherCondition.PartlyCloudy -> "Cer variabil"
-        WeatherCondition.Cloudy -> "Înnorat"
-        WeatherCondition.Rain -> "Ploaie"
-        WeatherCondition.Thunderstorm -> "Furtuni"
-        WeatherCondition.Snow -> "Ninsoare"
-        WeatherCondition.Mist -> "Ceață"
+@Composable
+private fun BonusMetricsGrid(details: WeatherDetails, current: CurrentWeather) {
+    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        DetailMetricCard(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Rounded.WaterDrop,
+            title = "HUMIDITY",
+            value = details.humidity.toString(),
+            unit = "%",
+            caption = "Dew point: ${humidityDewPoint(current)}°",
+        )
+        DetailMetricCard(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Rounded.WbSunny,
+            title = "UV INDEX",
+            value = details.uvIndex.toString(),
+            unit = uvLabel(details.uvIndex),
+            caption = uvRecommendation(details.uvIndex),
+        )
     }
+}
 
-private fun Int.toDegreesLabel(): String = "${this}\u00B0"
+@Composable
+private fun DetailMetricCard(
+    modifier: Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    value: String,
+    unit: String,
+    caption: String,
+    accentIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    accentText: String? = null,
+    captionColor: Color = TextPrimary,
+) {
+    InsetCard(modifier = modifier) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = TextPrimary.copy(alpha = 0.7f),
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text = title,
+                    color = TextPrimary.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp,
+                    ),
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = value,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Light),
+                )
+                Text(
+                    text = unit,
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
+            if (accentIcon != null && accentText != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = accentIcon,
+                        contentDescription = null,
+                        tint = ColorPrimary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        text = accentText,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            } else {
+                Text(
+                    text = caption,
+                    color = captionColor,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+    }
+}
 
+private fun rainfallCaption(chance: Int): String = when {
+    chance >= 70 -> "Averse probabile"
+    chance >= 30 -> "Posibile ploi scurte"
+    chance > 0 -> "Ploaie usoara posibila"
+    else -> "Nu se asteapta ploaie"
+}
+
+private fun visibilityCaption(visibilityKm: Int): String = when {
+    visibilityKm >= 10 -> "Clear view"
+    visibilityKm >= 6 -> "Vizibilitate buna"
+    visibilityKm >= 3 -> "Vizibilitate moderata"
+    else -> "Vizibilitate redusa"
+}
+
+private fun pressureCaption(pressureHpa: Int): String = when {
+    pressureHpa < 1005 -> "Scazuta"
+    pressureHpa > 1020 -> "Ridicata"
+    else -> "Steady"
+}
+
+private fun humidityDewPoint(current: CurrentWeather): Int = (current.feelsLikeC - 2).coerceAtLeast(-10)
+
+private fun uvLabel(uvIndex: Int): String = when {
+    uvIndex <= 2 -> "Low"
+    uvIndex <= 5 -> "Moderate"
+    uvIndex <= 7 -> "High"
+    uvIndex <= 10 -> "Very High"
+    else -> "Extreme"
+}
+
+private fun uvRecommendation(uvIndex: Int): String = when {
+    uvIndex <= 2 -> "Protectie minima necesara"
+    uvIndex <= 5 -> "SPF 30 recomandat"
+    uvIndex <= 7 -> "Evita expunerea lunga"
+    else -> "Stai la umbra la pranz"
+}
+
+@Composable
+private fun SectionHeader(title: String, subtitle: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            color = TextPrimary,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(text = subtitle, color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+private fun SearchLauncher(label: String, onClick: () -> Unit) {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        padding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(imageVector = Icons.Rounded.Search, contentDescription = null, tint = TextSecondary)
+            Text(text = label, color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+@Composable
+private fun ErrorCard(message: String, actionLabel: String, onAction: () -> Unit) {
+    GlassCard {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Momentan nu pot afisa vremea",
+                color = TextPrimary,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(text = message, color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
+            SearchLauncher(label = actionLabel, onClick = onAction)
+        }
+    }
+}
+
+@Composable
+private fun BottomTabs(
+    activeTab: HomeTab,
+    onTabSelected: (HomeTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val items = listOf(
+        HomeTab.Forecast to Icons.Rounded.Cloud,
+        HomeTab.Locations to Icons.Rounded.LocationOn,
+        HomeTab.Details to Icons.Rounded.Settings,
+    )
+
+    Surface(
+        modifier = modifier,
+        color = Color(0xCC0F172A),
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+        ) {
+            items.forEach { (tab, icon) ->
+                val selected = activeTab == tab
+                Column(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(if (selected) Color(0x3380AFFD) else Color.Transparent)
+                        .clickable { onTabSelected(tab) }
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (selected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .background(ColorPrimary.copy(alpha = 0.18f)),
+                            )
+                        }
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = tab.title,
+                            tint = if (selected) Color(0xFF93C5FD) else Color(0xFF64748B),
+                        )
+                    }
+                    Text(
+                        text = tab.title,
+                        color = if (selected) Color(0xFFBFDBFE) else Color(0xFF64748B),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.sp,
+                            letterSpacing = 0.8.sp,
+                        ),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Badge(label: String) {
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(ColorSurfaceContainerHighest.copy(alpha = 0.55f))
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+    ) {
+        Text(
+            text = label,
+            color = TextPrimary,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun ConditionBadge(
+    condition: WeatherCondition,
+    size: Dp,
+    iconSize: Dp,
+) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        ColorSurfaceContainerHigh.copy(alpha = 0.45f),
+                        ColorSurfaceContainerHighest.copy(alpha = 0.28f),
+                    ),
+                ),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size((iconSize.value * 1.9f).dp)
+                .clip(CircleShape)
+                .background(condition.accent().copy(alpha = 0.12f)),
+        )
+        Icon(
+            imageVector = condition.icon(),
+            contentDescription = condition.label(),
+            tint = condition.accent(),
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
+@Composable
+private fun MetricPill(title: String, value: String, modifier: Modifier = Modifier) {
+    InsetCard(modifier = modifier) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = title,
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = value,
+                color = TextPrimary,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun GlassCard(
+    modifier: Modifier = Modifier,
+    padding: PaddingValues = PaddingValues(20.dp),
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color.Transparent,
+        shape = RoundedCornerShape(24.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(24.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            ColorSurfaceContainerHigh.copy(alpha = 0.42f),
+                            ColorSurfaceContainer.copy(alpha = 0.28f),
+                        ),
+                    ),
+                ),
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.04f),
+                                Color.Transparent,
+                                ColorPrimary.copy(alpha = 0.03f),
+                            ),
+                        ),
+                    ),
+            )
+            Column(modifier = Modifier.padding(padding)) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsetCard(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        modifier = modifier,
+        color = ColorSurfaceContainerHighest.copy(alpha = 0.28f),
+        shape = RoundedCornerShape(24.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun BackdropGlow() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        drawRect(
+            brush = Brush.verticalGradient(
+                listOf(
+                    Color(0x221E3A8A),
+                    Color.Transparent,
+                    Color(0x120C0E11),
+                ),
+            ),
+        )
+        drawRect(
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color(0x1480AFFD),
+                    Color.Transparent,
+                    Color(0x10FFB151),
+                ),
+                start = Offset(0f, size.height * 0.08f),
+                end = Offset(size.width, size.height * 0.92f),
+            ),
+        )
+        drawRect(
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    Color.White.copy(alpha = 0.028f),
+                    Color.Transparent,
+                ),
+                start = Offset(size.width * 0.18f, 0f),
+                end = Offset(size.width * 0.82f, size.height),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun NoiseOverlay() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val stepX = size.width / 18f
+        val stepY = size.height / 32f
+        for (row in 0..32) {
+            for (col in 0..18) {
+                val alpha = if ((row + col) % 3 == 0) 0.018f else 0.01f
+                drawCircle(
+                    color = Color.White.copy(alpha = alpha),
+                    radius = 1.1f,
+                    center = Offset(
+                        x = col * stepX + (row % 2) * 6f,
+                        y = row * stepY,
+                    ),
+                )
+            }
+        }
+    }
+}
+
+private fun WeatherCondition.label(): String = when (this) {
+    WeatherCondition.Clear -> "Senin"
+    WeatherCondition.PartlyCloudy -> "Cer variabil"
+    WeatherCondition.Cloudy -> "Innorat"
+    WeatherCondition.Rain -> "Ploaie"
+    WeatherCondition.Thunderstorm -> "Furtuna"
+    WeatherCondition.Snow -> "Ninsoare"
+    WeatherCondition.Mist -> "Ceata"
+}
+
+private fun WeatherCondition.icon() = when (this) {
+    WeatherCondition.Clear -> Icons.Rounded.WbSunny
+    WeatherCondition.PartlyCloudy -> Icons.Rounded.WbSunny
+    WeatherCondition.Cloudy -> Icons.Rounded.Cloud
+    WeatherCondition.Rain -> Icons.Rounded.Grain
+    WeatherCondition.Thunderstorm -> Icons.Rounded.Thunderstorm
+    WeatherCondition.Snow -> Icons.Rounded.Grain
+    WeatherCondition.Mist -> Icons.Rounded.ModeNight
+}
+
+private fun WeatherCondition.accent(): Color = when (this) {
+    WeatherCondition.Clear -> Warm
+    WeatherCondition.PartlyCloudy -> Color(0xFFFFD37A)
+    WeatherCondition.Cloudy -> Color(0xFFD7E5EC)
+    WeatherCondition.Rain -> Cool
+    WeatherCondition.Thunderstorm -> Danger
+    WeatherCondition.Snow -> Color(0xFFF0FBFF)
+    WeatherCondition.Mist -> Color(0xFFAAABAF)
+}
+
+private fun WeatherCondition.mutedAccent(): Color = when (this) {
+    WeatherCondition.Clear -> Color(0xFFDFAF63)
+    WeatherCondition.PartlyCloudy -> Color(0xFFD1BE8E)
+    WeatherCondition.Cloudy -> Color(0xFFB7C4CB)
+    WeatherCondition.Rain -> Color(0xFF93B7E8)
+    WeatherCondition.Thunderstorm -> Color(0xFFD59090)
+    WeatherCondition.Snow -> Color(0xFFE5EEF6)
+    WeatherCondition.Mist -> Color(0xFFB1B5BB)
+}

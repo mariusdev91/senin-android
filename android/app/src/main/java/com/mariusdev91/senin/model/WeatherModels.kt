@@ -4,6 +4,7 @@ data class WeatherOverview(
     val current: CurrentWeather,
     val hourly: List<HourlyForecast>,
     val daily: List<DailyForecast>,
+    val details: WeatherDetails,
     val updatedAtLabel: String,
     val sourceLabel: String,
 )
@@ -17,6 +18,39 @@ data class CurrentWeather(
     val humidity: Int,
     val windKph: Int,
     val uvIndex: Int,
+)
+
+data class WeatherDetails(
+    val airQuality: AirQuality,
+    val visibilityKm: Int,
+    val pressureHpa: Int,
+    val humidity: Int,
+    val windKph: Int,
+    val windDirectionLabel: String,
+    val uvIndex: Int,
+    val precipitationChance: Int,
+    val sunSchedule: SunSchedule,
+)
+
+data class AirQuality(
+    val aqi: Int,
+    val category: String,
+    val primaryPollutant: String,
+    val description: String,
+)
+
+data class SunSchedule(
+    val sunriseLabel: String,
+    val sunsetLabel: String,
+    val daylightDurationLabel: String,
+)
+
+data class SavedLocationPreview(
+    val cityId: String,
+    val localTimeLabel: String,
+    val conditionLabel: String,
+    val condition: WeatherCondition,
+    val temperatureC: Int,
 )
 
 data class HourlyForecast(

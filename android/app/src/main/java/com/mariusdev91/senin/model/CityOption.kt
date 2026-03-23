@@ -13,7 +13,6 @@ data class CityOption(
     val subtitle: String
         get() {
             val normalizedRegion = region
-                .removePrefix("Județul ")
                 .removePrefix("Judetul ")
                 .trim()
 
