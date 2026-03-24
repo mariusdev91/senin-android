@@ -534,6 +534,16 @@ private fun ForecastTopBar(
                         color = ColorOnSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                     )
+                    if (current != null) {
+                        Text(
+                            text = strings.realFeelCompact(current.feelsLikeC),
+                            color = ColorPrimary.copy(alpha = 0.92f),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.2.sp,
+                            ),
+                        )
+                    }
                 }
                 Icon(
                     imageVector = current?.condition?.icon() ?: Icons.Rounded.Cloud,
