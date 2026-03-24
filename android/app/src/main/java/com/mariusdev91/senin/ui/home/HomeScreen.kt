@@ -133,6 +133,7 @@ fun HomeScreen(
     onCitySelected: (CityOption) -> Unit,
     onFavoriteToggle: (CityOption) -> Unit,
     onLanguageSelected: (AppLanguage) -> Unit,
+    onUseCurrentLocation: () -> Unit,
     onRetry: () -> Unit,
 ) {
     val strings = currentStrings()
@@ -164,6 +165,10 @@ fun HomeScreen(
                     tabIndex = HomeTab.Forecast.ordinal
                 },
                 onFavoriteToggle = onFavoriteToggle,
+                onUseCurrentLocation = {
+                    tabIndex = HomeTab.Forecast.ordinal
+                    onUseCurrentLocation()
+                },
             )
 
             HomeTab.Details -> DetailsScreen(uiState = uiState)
@@ -293,6 +298,7 @@ private fun LocationsScreen(
     onQueryChange: (String) -> Unit,
     onCitySelected: (CityOption) -> Unit,
     onFavoriteToggle: (CityOption) -> Unit,
+    onUseCurrentLocation: () -> Unit,
 ) {
     val strings = currentStrings()
     Box(modifier = Modifier.fillMaxSize()) {
@@ -318,6 +324,13 @@ private fun LocationsScreen(
                     onValueChange = onQueryChange,
                     onCitySelected = onCitySelected,
                     onFavoriteToggle = onFavoriteToggle,
+                )
+            }
+
+            item {
+                CurrentLocationActionCard(
+                    isLoading = uiState.isResolvingCurrentLocation,
+                    onClick = onUseCurrentLocation,
                 )
             }
 
@@ -552,6 +565,84 @@ private fun ForecastTopBar(
                     modifier = Modifier.size(26.dp),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun CurrentLocationActionCard(
+    isLoading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val strings = currentStrings()
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = !isLoading, onClick = onClick),
+        color = Color(0x99171A1D),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(ColorSurfaceContainerHigh.copy(alpha = 0.7f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = ColorPrimary,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.MyLocation,
+                            contentDescription = strings.useCurrentLocation,
+                            tint = ColorPrimary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = strings.myLocationLabel,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = (-0.2).sp,
+                        ),
+                    )
+                    Text(
+                        text = strings.useCurrentLocation,
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Light,
+                        ),
+                    )
+                }
+            }
+            Text(
+                text = strings.gpsLocationLabel,
+                color = ColorPrimary,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 1.sp,
+                ),
+            )
         }
     }
 }

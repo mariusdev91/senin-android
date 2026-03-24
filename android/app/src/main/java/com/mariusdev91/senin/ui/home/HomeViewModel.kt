@@ -38,6 +38,7 @@ data class HomeUiState(
     val isLoadingWeather: Boolean = false,
     val isLoadingLocationPreviews: Boolean = false,
     val isSearching: Boolean = false,
+    val isResolvingCurrentLocation: Boolean = false,
     val errorMessage: String? = null,
     val searchStatusMessage: String? = null,
 )
@@ -89,22 +90,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     fun onLocationPermissionUpdated(isGranted: Boolean) {
         if (!isGranted || hasAttemptedStartupLocation) return
         hasAttemptedStartupLocation = true
+        resolveCurrentLocation(isUserInitiated = false)
+    }
 
-        currentLocationJob?.cancel()
-        currentLocationJob = viewModelScope.launch {
-            val currentCity = runSuspendCatching {
-                currentLocationProvider.resolveCurrentCity(uiState.selectedLanguage)
-            }.getOrNull() ?: return@launch
-
-            val activeCity = uiState.pendingCity ?: uiState.selectedCity
-            val sameCoordinates =
-                activeCity.latitude == currentCity.latitude &&
-                    activeCity.longitude == currentCity.longitude
-
-            if (sameCoordinates) return@launch
-
-            refreshWeather(currentCity, preserveCurrentWeather = uiState.weather != null)
-        }
+    fun onUseCurrentLocationRequested() {
+        resolveCurrentLocation(isUserInitiated = true)
     }
 
     fun onLanguageSelected(language: AppLanguage) {
@@ -233,11 +223,39 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         loadLocationPreviews(uiState.favoriteCities)
     }
 
+    private fun resolveCurrentLocation(isUserInitiated: Boolean) {
+        if (currentLocationJob?.isActive == true) return
+
+        currentLocationJob?.cancel()
+        if (isUserInitiated) {
+            uiState = uiState.copy(isResolvingCurrentLocation = true)
+        }
+        currentLocationJob = viewModelScope.launch {
+            val currentCity = runSuspendCatching {
+                currentLocationProvider.resolveCurrentCity(uiState.selectedLanguage)
+            }.getOrNull()
+
+            val activeCity = uiState.pendingCity ?: uiState.selectedCity
+            val shouldRefresh = currentCity != null &&
+                (
+                    activeCity.latitude != currentCity.latitude ||
+                        activeCity.longitude != currentCity.longitude
+                    )
+
+            uiState = uiState.copy(isResolvingCurrentLocation = false)
+
+            if (currentCity == null || !shouldRefresh) return@launch
+
+            refreshWeather(currentCity, preserveCurrentWeather = uiState.weather != null)
+        }
+    }
+
     private fun refreshWeather(city: CityOption, preserveCurrentWeather: Boolean) {
         weatherJob?.cancel()
         uiState = uiState.copy(
             weather = if (preserveCurrentWeather) uiState.weather else null,
             isLoadingWeather = true,
+            isResolvingCurrentLocation = false,
             errorMessage = null,
             pendingCity = if (city.id == uiState.selectedCity.id) uiState.pendingCity else city,
         )
@@ -258,6 +276,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                     uiState = uiState.copy(
                         pendingCity = null,
                         isLoadingWeather = false,
+                        isResolvingCurrentLocation = false,
                         errorMessage = error.toUserMessage(uiState.selectedLanguage),
                     )
                 }
