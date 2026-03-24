@@ -165,3 +165,11 @@ dist
 .env*
 !.env.example
 .wrangler/
+
+# Android Studio / Gradle
+.idea/
+*.iml
+android/.gradle/
+android/local.properties
+android/**/build/
+android/.kotlin/
