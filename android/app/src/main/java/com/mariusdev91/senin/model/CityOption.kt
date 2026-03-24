@@ -17,6 +17,7 @@ data class CityOption(
                 .trim()
 
             return when {
+                country.isBlank() -> normalizedRegion.ifBlank { name }
                 countryCode.equals("RO", ignoreCase = true) -> normalizedRegion.ifBlank { country }
                 normalizedRegion.isBlank() || normalizedRegion.equals(country, ignoreCase = true) -> country
                 else -> "$normalizedRegion, $country"
