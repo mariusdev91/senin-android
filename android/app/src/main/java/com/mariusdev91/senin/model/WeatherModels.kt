@@ -1,5 +1,8 @@
 package com.mariusdev91.senin.model
 
+import java.time.LocalDate
+import java.time.LocalDateTime
+
 data class WeatherOverview(
     val current: CurrentWeather,
     val hourly: List<HourlyForecast>,
@@ -54,6 +57,7 @@ data class SavedLocationPreview(
 )
 
 data class HourlyForecast(
+    val dateTime: LocalDateTime,
     val timeLabel: String,
     val temperatureC: Int,
     val precipitationChance: Int,
@@ -62,6 +66,7 @@ data class HourlyForecast(
 )
 
 data class DailyForecast(
+    val date: LocalDate,
     val dayLabel: String,
     val highC: Int,
     val lowC: Int,
