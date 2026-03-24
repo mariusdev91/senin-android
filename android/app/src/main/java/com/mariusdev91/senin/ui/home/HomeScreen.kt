@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Air
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
@@ -608,6 +609,17 @@ private fun InlineSearchCard(
                         contentDescription = null,
                         tint = ColorOnSurfaceVariant,
                     )
+                },
+                trailingIcon = {
+                    if (value.isNotBlank()) {
+                        IconButton(onClick = { onValueChange("") }) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = strings.clearSearch,
+                                tint = ColorOnSurfaceVariant,
+                            )
+                        }
+                    }
                 },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = ColorSurfaceContainerHighest.copy(alpha = 0.88f),
