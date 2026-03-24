@@ -158,6 +158,12 @@ data class AppStrings(
             AppLanguage.Hungarian -> "Aktualis hangulat"
         }
 
+    fun realFeelCompact(temperature: Int): String = when (language) {
+        AppLanguage.Romanian -> "Se simte $temperature°"
+        AppLanguage.English -> "Feels like $temperature°"
+        AppLanguage.Hungarian -> "Erzetre $temperature°"
+    }
+
     fun lastUpdated(label: String?): String = label ?: when (language) {
         AppLanguage.Romanian -> "Ultima actualizare indisponibila"
         AppLanguage.English -> "Last update unavailable"
