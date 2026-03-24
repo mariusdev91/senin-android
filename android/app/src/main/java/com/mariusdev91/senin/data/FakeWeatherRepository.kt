@@ -12,6 +12,8 @@ import com.mariusdev91.senin.model.SunSchedule
 import com.mariusdev91.senin.model.WeatherCondition
 import com.mariusdev91.senin.model.WeatherDetails
 import com.mariusdev91.senin.model.WeatherOverview
+import java.time.LocalDate
+import java.time.LocalDateTime
 import kotlin.math.absoluteValue
 
 class FakeWeatherRepository : WeatherRepository {
@@ -81,8 +83,11 @@ class FakeWeatherRepository : WeatherRepository {
         fun toOverview(city: CityOption, strings: AppStrings): WeatherOverview {
             val delta = city.name.hashCode().absoluteValue % 3
             val airCategory = strings.aqiCategory(airQualityValue)
+            val todayDate = LocalDate.now()
+            val nowTime = LocalDateTime.now().withMinute(0).withSecond(0).withNano(0)
             val today = DailyForecast(
-                strings.localizedDayLabel(0, java.time.DayOfWeek.MONDAY),
+                todayDate,
+                strings.localizedDayLabel(0, todayDate.dayOfWeek),
                 dayHigh,
                 dayLow,
                 precipitationChance,
@@ -100,18 +105,18 @@ class FakeWeatherRepository : WeatherRepository {
                     uvIndex = uvIndex,
                 ),
                 hourly = listOf(
-                    HourlyForecast(strings.now, currentTemp, precipitationChance, windKph, condition),
-                    HourlyForecast("11:00", currentTemp + 1, (precipitationChance - 6).coerceAtLeast(5), windKph + 1, condition),
-                    HourlyForecast("14:00", dayHigh, (precipitationChance - 10).coerceAtLeast(5), windKph + 2, condition),
-                    HourlyForecast("17:00", dayHigh - 1, precipitationChance + 4, windKph + 3, condition.laterDayCondition()),
-                    HourlyForecast("20:00", dayLow + 4, precipitationChance + 6, windKph + 1, WeatherCondition.PartlyCloudy),
+                    HourlyForecast(nowTime, strings.now, currentTemp, precipitationChance, windKph, condition),
+                    HourlyForecast(nowTime.plusHours(1), nowTime.plusHours(1).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")), currentTemp + 1, (precipitationChance - 6).coerceAtLeast(5), windKph + 1, condition),
+                    HourlyForecast(nowTime.plusHours(4), nowTime.plusHours(4).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")), dayHigh, (precipitationChance - 10).coerceAtLeast(5), windKph + 2, condition),
+                    HourlyForecast(nowTime.plusHours(7), nowTime.plusHours(7).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")), dayHigh - 1, precipitationChance + 4, windKph + 3, condition.laterDayCondition()),
+                    HourlyForecast(nowTime.plusHours(10), nowTime.plusHours(10).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")), dayLow + 4, precipitationChance + 6, windKph + 1, WeatherCondition.PartlyCloudy),
                 ),
                 daily = listOf(
                     today,
-                    DailyForecast(strings.localizedDayLabel(1, java.time.DayOfWeek.TUESDAY), dayHigh + delta, dayLow + 1, (precipitationChance + 8).coerceAtMost(95), condition.nextDayCondition()),
-                    DailyForecast(strings.localizedDayLabel(2, java.time.DayOfWeek.WEDNESDAY), dayHigh - 1, dayLow - 1, (precipitationChance + 4).coerceAtMost(90), WeatherCondition.PartlyCloudy),
-                    DailyForecast(strings.localizedDayLabel(3, java.time.DayOfWeek.THURSDAY), dayHigh + 2, dayLow, (precipitationChance - 12).coerceAtLeast(5), WeatherCondition.Clear),
-                    DailyForecast(strings.localizedDayLabel(4, java.time.DayOfWeek.FRIDAY), dayHigh + 1, dayLow - 2, (precipitationChance + 10).coerceAtMost(95), condition.nextDayCondition()),
+                    DailyForecast(todayDate.plusDays(1), strings.localizedDayLabel(1, todayDate.plusDays(1).dayOfWeek), dayHigh + delta, dayLow + 1, (precipitationChance + 8).coerceAtMost(95), condition.nextDayCondition()),
+                    DailyForecast(todayDate.plusDays(2), strings.localizedDayLabel(2, todayDate.plusDays(2).dayOfWeek), dayHigh - 1, dayLow - 1, (precipitationChance + 4).coerceAtMost(90), WeatherCondition.PartlyCloudy),
+                    DailyForecast(todayDate.plusDays(3), strings.localizedDayLabel(3, todayDate.plusDays(3).dayOfWeek), dayHigh + 2, dayLow, (precipitationChance - 12).coerceAtLeast(5), WeatherCondition.Clear),
+                    DailyForecast(todayDate.plusDays(4), strings.localizedDayLabel(4, todayDate.plusDays(4).dayOfWeek), dayHigh + 1, dayLow - 2, (precipitationChance + 10).coerceAtMost(95), condition.nextDayCondition()),
                 ),
                 details = WeatherDetails(
                     airQuality = AirQuality(

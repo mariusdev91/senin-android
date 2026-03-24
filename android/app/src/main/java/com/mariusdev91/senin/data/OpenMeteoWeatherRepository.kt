@@ -270,12 +270,15 @@ class OpenMeteoWeatherRepository : WeatherRepository {
 
         val startIndex = startIndexForCurrentTime(times, currentTime)
         val endExclusive = minOf(times.length(), startIndex + 24)
+        val fallbackDateTime = runCatching { LocalDateTime.parse(currentTime) }.getOrElse { LocalDateTime.now() }
 
         return buildList {
             for (index in startIndex until endExclusive) {
+                val rawTime = times.optString(index)
                 add(
                     HourlyForecast(
-                        timeLabel = if (index == startIndex) strings.now else times.optString(index).toHourLabel(),
+                        dateTime = runCatching { LocalDateTime.parse(rawTime) }.getOrElse { fallbackDateTime.plusHours((index - startIndex).toLong()) },
+                        timeLabel = if (index == startIndex) strings.now else rawTime.toHourLabel(),
                         temperatureC = temps.optRoundedInt(index),
                         precipitationChance = rain.optRoundedInt(index),
                         windKph = wind.optRoundedInt(index),
@@ -298,6 +301,7 @@ class OpenMeteoWeatherRepository : WeatherRepository {
                 val date = runCatching { LocalDate.parse(times.optString(index)) }.getOrNull() ?: continue
                 add(
                     DailyForecast(
+                        date = date,
                         dayLabel = strings.localizedDayLabel(index, date.dayOfWeek),
                         highC = highs.optRoundedInt(index),
                         lowC = lows.optRoundedInt(index),

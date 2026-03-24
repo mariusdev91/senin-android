@@ -237,9 +237,11 @@ private fun ForecastScreen(
     val weather = uiState.weather
     val selectedCity = uiState.pendingCity ?: uiState.selectedCity
     val visibleHours = weather?.hourly?.take(8).orEmpty()
-    val peakHourIndex = visibleHours.indexOfFirst { hour ->
-        hour.temperatureC == visibleHours.maxOfOrNull { it.temperatureC }
-    }
+    val peakHourIndex = weather?.daily?.firstOrNull()?.let { today ->
+        visibleHours.indexOfFirst { hour ->
+            hour.dateTime.toLocalDate() == today.date && hour.temperatureC == today.highC
+        }
+    } ?: -1
     val pullRefreshState = rememberPullRefreshState(
         refreshing = uiState.isLoadingWeather,
         onRefresh = onRetry,
