@@ -75,6 +75,13 @@ data class AppStrings(
             AppLanguage.Hungarian -> "Keress varosokat Romaniabol vagy a vilagbol"
         }
 
+    val clearSearch: String
+        get() = when (language) {
+            AppLanguage.Romanian -> "Curata cautarea"
+            AppLanguage.English -> "Clear search"
+            AppLanguage.Hungarian -> "Kereses torlese"
+        }
+
     val savedLocations: String
         get() = when (language) {
             AppLanguage.Romanian -> "Locatii salvate"
