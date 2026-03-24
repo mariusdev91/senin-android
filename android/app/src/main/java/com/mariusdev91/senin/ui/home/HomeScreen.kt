@@ -2375,32 +2375,39 @@ private fun AppMenuDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 92.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
-            contentAlignment = Alignment.TopStart,
+                .background(Color(0x33040B12))
+                .clickable(onClick = onDismiss),
         ) {
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = ColorSurfaceContainerHigh.copy(alpha = 0.94f),
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 92.dp, start = 20.dp, end = 20.dp, bottom = 20.dp),
+                contentAlignment = Alignment.TopStart,
             ) {
-                Row(
-                    modifier = Modifier
-                        .width(220.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .clickable(onClick = onLanguagesClick)
-                        .padding(horizontal = 18.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = ColorSurfaceContainerHigh.copy(alpha = 0.94f),
                 ) {
-                    Text(
-                        text = label,
-                        color = TextPrimary,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                    )
-                    Icon(
-                        imageVector = Icons.Rounded.Settings,
-                        contentDescription = null,
-                        tint = ColorPrimary,
-                    )
+                    Row(
+                        modifier = Modifier
+                            .width(220.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                            .clickable(onClick = onLanguagesClick)
+                            .padding(horizontal = 18.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = label,
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                        )
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = null,
+                            tint = ColorPrimary,
+                        )
+                    }
                 }
             }
         }
@@ -2418,51 +2425,59 @@ private fun LanguageDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Surface(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            shape = RoundedCornerShape(28.dp),
-            color = ColorSurfaceContainerHigh.copy(alpha = 0.96f),
+                .fillMaxSize()
+                .background(Color(0x33040B12))
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center,
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(28.dp),
+                color = ColorSurfaceContainerHigh.copy(alpha = 0.96f),
             ) {
-                Text(
-                    text = strings.languageDialogTitle,
-                    color = TextPrimary,
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Light),
-                )
-                AppLanguage.entries.forEach { language ->
-                    val selected = language == selectedLanguage
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable { onLanguageSelected(language) },
-                        shape = RoundedCornerShape(20.dp),
-                        color = if (selected) ColorPrimary.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.04f),
-                    ) {
-                        Row(
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Text(
+                        text = strings.languageDialogTitle,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Light),
+                    )
+                    AppLanguage.entries.forEach { language ->
+                        val selected = language == selectedLanguage
+                        Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                                .clip(RoundedCornerShape(20.dp))
+                                .clickable { onLanguageSelected(language) },
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (selected) ColorPrimary.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.04f),
                         ) {
-                            Text(
-                                text = language.nativeLabel,
-                                color = if (selected) ColorPrimary else TextPrimary,
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-                            )
-                            if (selected) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(ColorPrimary),
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = language.nativeLabel,
+                                    color = if (selected) ColorPrimary else TextPrimary,
+                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                                 )
+                                if (selected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(ColorPrimary),
+                                    )
+                                }
                             }
                         }
                     }
