@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.mariusdev91.senin.data.CurrentLocationProvider
 import com.mariusdev91.senin.data.FavoriteCitiesStore
 import com.mariusdev91.senin.data.LanguageStore
 import com.mariusdev91.senin.data.OpenMeteoWeatherRepository
@@ -46,11 +47,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val selectedCityStore = SelectedCityStore(application)
     private val favoriteCitiesStore = FavoriteCitiesStore(application)
     private val languageStore = LanguageStore(application)
+    private val currentLocationProvider = CurrentLocationProvider(application)
     private val defaultCity = repository.defaultCity()
 
     private var weatherJob: Job? = null
     private var searchJob: Job? = null
     private var locationPreviewJob: Job? = null
+    private var currentLocationJob: Job? = null
+    private var hasAttemptedStartupLocation by mutableStateOf(false)
 
     private val initialLanguage = languageStore.load()
     private val initialFavorites = normalizedFavorites(
@@ -80,6 +84,27 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         loadLocationPreviews(initialFavorites)
         refreshWeather(initialSelectedCity, preserveCurrentWeather = false)
+    }
+
+    fun onLocationPermissionUpdated(isGranted: Boolean) {
+        if (!isGranted || hasAttemptedStartupLocation) return
+        hasAttemptedStartupLocation = true
+
+        currentLocationJob?.cancel()
+        currentLocationJob = viewModelScope.launch {
+            val currentCity = runSuspendCatching {
+                currentLocationProvider.resolveCurrentCity(uiState.selectedLanguage)
+            }.getOrNull() ?: return@launch
+
+            val activeCity = uiState.pendingCity ?: uiState.selectedCity
+            val sameCoordinates =
+                activeCity.latitude == currentCity.latitude &&
+                    activeCity.longitude == currentCity.longitude
+
+            if (sameCoordinates) return@launch
+
+            refreshWeather(currentCity, preserveCurrentWeather = uiState.weather != null)
+        }
     }
 
     fun onLanguageSelected(language: AppLanguage) {

@@ -82,6 +82,20 @@ data class AppStrings(
             AppLanguage.Hungarian -> "Mentett helyek"
         }
 
+    val currentLocationLabel: String
+        get() = when (language) {
+            AppLanguage.Romanian -> "Locatia curenta"
+            AppLanguage.English -> "Current location"
+            AppLanguage.Hungarian -> "Jelenlegi hely"
+        }
+
+    val gpsLocationLabel: String
+        get() = when (language) {
+            AppLanguage.Romanian -> "GPS"
+            AppLanguage.English -> "GPS"
+            AppLanguage.Hungarian -> "GPS"
+        }
+
     fun savedCitiesCount(count: Int): String = when (language) {
         AppLanguage.Romanian -> "$count orase"
         AppLanguage.English -> "$count cities"
