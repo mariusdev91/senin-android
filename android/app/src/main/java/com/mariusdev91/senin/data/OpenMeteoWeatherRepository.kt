@@ -60,7 +60,6 @@ class OpenMeteoWeatherRepository : WeatherRepository {
             append("https://geocoding-api.open-meteo.com/v1/search?")
             append("name=").append(encoded)
             append("&count=12")
-            append("&language=").append(language.code)
             append("&format=json")
         }
 
