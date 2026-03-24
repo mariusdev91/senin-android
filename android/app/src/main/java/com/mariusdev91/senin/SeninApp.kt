@@ -32,16 +32,24 @@ fun SeninApp() {
         )
     }
     var hasRequestedLocationPermission by rememberSaveable { mutableStateOf(false) }
-    val isLocationGranted = locationPermissions.any { permission ->
-        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+    var pendingManualLocationRequest by rememberSaveable { mutableStateOf(false) }
+    val hasLocationPermission = {
+        locationPermissions.any { permission ->
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        }
     }
+    val isLocationGranted = hasLocationPermission()
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) {
-        val isGranted = locationPermissions.any { permission ->
-            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-        }
+        val isGranted = hasLocationPermission()
         viewModel.onLocationPermissionUpdated(isGranted)
+        if (pendingManualLocationRequest) {
+            pendingManualLocationRequest = false
+            if (isGranted) {
+                viewModel.onUseCurrentLocationRequested()
+            }
+        }
     }
 
     LaunchedEffect(isLocationGranted) {
@@ -62,6 +70,14 @@ fun SeninApp() {
             onCitySelected = viewModel::onCitySelected,
             onFavoriteToggle = viewModel::onFavoriteToggle,
             onLanguageSelected = viewModel::onLanguageSelected,
+            onUseCurrentLocation = {
+                if (hasLocationPermission()) {
+                    viewModel.onUseCurrentLocationRequested()
+                } else {
+                    pendingManualLocationRequest = true
+                    locationPermissionLauncher.launch(locationPermissions)
+                }
+            },
             onRetry = viewModel::onRetry,
         )
     }
