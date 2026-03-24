@@ -134,7 +134,6 @@ fun HomeScreen(
 ) {
     val strings = currentStrings()
     var tabIndex by rememberSaveable { mutableIntStateOf(0) }
-    var isSearchOpen by rememberSaveable { mutableStateOf(false) }
     var isMenuOpen by rememberSaveable { mutableStateOf(false) }
     var isLanguageDialogOpen by rememberSaveable { mutableStateOf(false) }
     val activeTab = HomeTab.entries[tabIndex]
@@ -150,14 +149,13 @@ fun HomeScreen(
         when (activeTab) {
             HomeTab.Forecast -> ForecastScreen(
                 uiState = uiState,
-                onOpenSearch = { isSearchOpen = true },
                 onOpenMenu = { isMenuOpen = true },
                 onRetry = onRetry,
             )
 
             HomeTab.Locations -> LocationsScreen(
                 uiState = uiState,
-                onOpenSearch = { isSearchOpen = true },
+                onQueryChange = onQueryChange,
                 onCitySelected = {
                     onCitySelected(it)
                     tabIndex = HomeTab.Forecast.ordinal
@@ -209,27 +207,12 @@ fun HomeScreen(
             },
         )
     }
-
-    if (isSearchOpen) {
-        SearchDialog(
-            uiState = uiState,
-            onDismiss = { isSearchOpen = false },
-            onQueryChange = onQueryChange,
-            onCitySelected = {
-                isSearchOpen = false
-                onCitySelected(it)
-                tabIndex = HomeTab.Forecast.ordinal
-            },
-            onFavoriteToggle = onFavoriteToggle,
-        )
-    }
 }
 
 @Composable
 @OptIn(ExperimentalMaterialApi::class)
 private fun ForecastScreen(
     uiState: HomeUiState,
-    onOpenSearch: () -> Unit,
     onOpenMenu: () -> Unit,
     onRetry: () -> Unit,
 ) {
@@ -304,7 +287,7 @@ private fun ForecastScreen(
 @Composable
 private fun LocationsScreen(
     uiState: HomeUiState,
-    onOpenSearch: () -> Unit,
+    onQueryChange: (String) -> Unit,
     onCitySelected: (CityOption) -> Unit,
     onFavoriteToggle: (CityOption) -> Unit,
 ) {
@@ -320,9 +303,18 @@ private fun LocationsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                SearchFieldCard(
+                InlineSearchCard(
+                    value = uiState.query,
                     placeholder = strings.searchCityPlaceholder,
-                    onClick = onOpenSearch,
+                    hint = strings.searchDialogHint,
+                    searchStatusMessage = uiState.searchStatusMessage,
+                    isSearching = uiState.isSearching,
+                    resultCountLabel = strings.searchResultsCount(uiState.suggestions.size),
+                    suggestions = uiState.suggestions,
+                    favoriteCities = uiState.favoriteCities,
+                    onValueChange = onQueryChange,
+                    onCitySelected = onCitySelected,
+                    onFavoriteToggle = onFavoriteToggle,
                 )
             }
 
@@ -582,35 +574,135 @@ private fun LocationsTopBar(
 }
 
 @Composable
-private fun SearchFieldCard(
+private fun InlineSearchCard(
+    value: String,
     placeholder: String,
-    onClick: () -> Unit,
+    hint: String,
+    searchStatusMessage: String?,
+    isSearching: Boolean,
+    resultCountLabel: String,
+    suggestions: List<CityOption>,
+    favoriteCities: List<CityOption>,
+    onValueChange: (String) -> Unit,
+    onCitySelected: (CityOption) -> Unit,
+    onFavoriteToggle: (CityOption) -> Unit,
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(999.dp))
-            .clickable(onClick = onClick),
-        color = ColorSurfaceContainerHighest.copy(alpha = 0.9f),
-        shape = RoundedCornerShape(999.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Search,
-                contentDescription = null,
-                tint = ColorOnSurfaceVariant,
+    val strings = currentStrings()
+
+    GlassCard {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            TextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text(
+                        text = placeholder,
+                        color = TextMuted,
+                    )
+                },
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Rounded.Search,
+                        contentDescription = null,
+                        tint = ColorOnSurfaceVariant,
+                    )
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = ColorSurfaceContainerHighest.copy(alpha = 0.88f),
+                    unfocusedContainerColor = ColorSurfaceContainerHighest.copy(alpha = 0.72f),
+                    disabledContainerColor = ColorSurfaceContainerHighest.copy(alpha = 0.72f),
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    disabledTextColor = TextPrimary,
+                    cursorColor = Warm,
+                ),
+                shape = RoundedCornerShape(28.dp),
             )
-            Text(
-                text = placeholder,
-                color = ColorOnSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge,
-            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = if (value.isBlank()) hint else resultCountLabel,
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                if (isSearching) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = Warm,
+                    )
+                }
+            }
+
+            if (searchStatusMessage != null) {
+                Text(
+                    text = searchStatusMessage,
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            if (value.isNotBlank()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    suggestions.forEach { city ->
+                        val isFavorite = favoriteCities.any { it.id == city.id }
+                        InsetCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onCitySelected(city) },
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(end = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Text(
+                                        text = city.name,
+                                        color = TextPrimary,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = city.subtitle,
+                                        color = TextSecondary,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                IconButton(onClick = { onFavoriteToggle(city) }) {
+                                    Icon(
+                                        imageVector = if (isFavorite) {
+                                            Icons.Rounded.Favorite
+                                        } else {
+                                            Icons.Rounded.FavoriteBorder
+                                        },
+                                        contentDescription = if (isFavorite) strings.removeFromFavorites else strings.addToFavorites,
+                                        tint = if (isFavorite) Warm else TextSecondary,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -1813,142 +1905,6 @@ private fun LocationCard(
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                     )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SearchDialog(
-    uiState: HomeUiState,
-    onDismiss: () -> Unit,
-    onQueryChange: (String) -> Unit,
-    onCitySelected: (CityOption) -> Unit,
-    onFavoriteToggle: (CityOption) -> Unit,
-) {
-    val strings = currentStrings()
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-                .heightIn(max = 720.dp),
-            color = Color(0xFF10253A),
-            shape = RoundedCornerShape(32.dp),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 18.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = strings.searchDialogTitle,
-                        color = TextPrimary,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Badge(strings.searchResultsCount(uiState.suggestions.size))
-                }
-
-                TextField(
-                    value = uiState.query,
-                    onValueChange = onQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = {
-                        Text(
-                            text = strings.searchDialogHint,
-                            color = TextMuted,
-                        )
-                    },
-                    singleLine = true,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = null,
-                            tint = TextSecondary,
-                        )
-                    },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = ColorSurfaceContainerHighest.copy(alpha = 0.88f),
-                        unfocusedContainerColor = ColorSurfaceContainerHighest.copy(alpha = 0.72f),
-                        disabledContainerColor = ColorSurfaceContainerHighest.copy(alpha = 0.72f),
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        disabledTextColor = TextPrimary,
-                        cursorColor = Warm,
-                    ),
-                    shape = RoundedCornerShape(28.dp),
-                )
-
-                if (uiState.searchStatusMessage != null) {
-                    Text(
-                        text = uiState.searchStatusMessage,
-                        color = TextMuted,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = false),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(uiState.suggestions, key = { it.id }) { city ->
-                        val isFavorite = uiState.favoriteCities.any { it.id == city.id }
-                        InsetCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onCitySelected(city) },
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    Text(
-                                        text = city.name,
-                                        color = TextPrimary,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                    Text(
-                                        text = city.subtitle,
-                                        color = TextSecondary,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                }
-                                IconButton(onClick = { onFavoriteToggle(city) }) {
-                                    Icon(
-                                        imageVector = if (isFavorite) {
-                                            Icons.Rounded.Favorite
-                                        } else {
-                                            Icons.Rounded.FavoriteBorder
-                                        },
-                                        contentDescription = if (isFavorite) strings.removeFromFavorites else strings.addToFavorites,
-                                        tint = if (isFavorite) Warm else TextSecondary,
-                                    )
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
