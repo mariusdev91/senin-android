@@ -1251,6 +1251,8 @@ private fun TimelineWeatherSection(
                         .padding(horizontal = 14.dp, vertical = 16.dp),
                 ) {
                     val compactCard = maxWidth < 320.dp
+                    val hourOfDay = hour.dateTime.hour
+                    val isNight = hourOfDay >= 21 || hourOfDay < 6
 
                     if (compactCard) {
                         Column(
@@ -1262,17 +1264,11 @@ private fun TimelineWeatherSection(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Icon(
-                                    imageVector = when {
-                                        isSunset -> Icons.Rounded.WbSunny
-                                        else -> hour.condition.icon()
-                                    },
-                                    contentDescription = null,
-                                    tint = when {
-                                        isPeak -> ColorTertiary
-                                        isSunset -> ColorOnSurfaceVariant
-                                        else -> hour.condition.accent()
-                                    },
+                                WeatherGlyph(
+                                    condition = hour.condition,
+                                    isNight = isNight,
+                                    isSunset = isSunset,
+                                    isHighlighted = isPeak,
                                     modifier = Modifier.size(24.dp),
                                 )
                                 Column(
@@ -1314,15 +1310,9 @@ private fun TimelineWeatherSection(
                                 horizontalAlignment = Alignment.End,
                                 verticalArrangement = Arrangement.spacedBy(2.dp),
                             ) {
-                                if (isNow || (!isPeak && !isSunset)) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                        TimelineStat(strings.wind, "${hour.windKph}km/h")
-                                        TimelineStat(strings.humidityShort, "${hour.precipitationChance}%")
-                                    }
-                                } else if (isPeak) {
-                                    TimelineStat(strings.peakUv, "6 ${strings.uvLabel(6)}", alignEnd = true)
-                                } else {
-                                    TimelineStat(strings.visibilityShort, "12km", alignEnd = true)
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    TimelineStat(strings.wind, "${hour.windKph}km/h")
+                                    TimelineStat(strings.humidityShort, "${hour.precipitationChance}%")
                                 }
                             }
                         }
@@ -1339,17 +1329,11 @@ private fun TimelineWeatherSection(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Icon(
-                                    imageVector = when {
-                                        isSunset -> Icons.Rounded.WbSunny
-                                        else -> hour.condition.icon()
-                                    },
-                                    contentDescription = null,
-                                    tint = when {
-                                        isPeak -> ColorTertiary
-                                        isSunset -> ColorOnSurfaceVariant
-                                        else -> hour.condition.accent()
-                                    },
+                                WeatherGlyph(
+                                    condition = hour.condition,
+                                    isNight = isNight,
+                                    isSunset = isSunset,
+                                    isHighlighted = isPeak,
                                     modifier = Modifier.size(24.dp),
                                 )
                                 Column(
@@ -1390,15 +1374,9 @@ private fun TimelineWeatherSection(
                                 horizontalAlignment = Alignment.End,
                                 verticalArrangement = Arrangement.spacedBy(2.dp),
                             ) {
-                                if (isNow || (!isPeak && !isSunset)) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        TimelineStat(strings.wind, "${hour.windKph}km/h")
-                                        TimelineStat(strings.humidityShort, "${hour.precipitationChance}%")
-                                    }
-                                } else if (isPeak) {
-                                    TimelineStat(strings.peakUv, "6 ${strings.uvLabel(6)}", alignEnd = true)
-                                } else {
-                                    TimelineStat(strings.visibilityShort, "12km", alignEnd = true)
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    TimelineStat(strings.wind, "${hour.windKph}km/h")
+                                    TimelineStat(strings.humidityShort, "${hour.precipitationChance}%")
                                 }
                             }
                         }
@@ -1406,6 +1384,106 @@ private fun TimelineWeatherSection(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun WeatherGlyph(
+    condition: WeatherCondition,
+    isNight: Boolean,
+    isSunset: Boolean,
+    isHighlighted: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val accent = when {
+        isHighlighted -> ColorTertiary
+        isSunset -> ColorOnSurfaceVariant
+        condition == WeatherCondition.Clear && isNight -> Color(0xFFDDE6F7)
+        else -> condition.accent()
+    }
+
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        when {
+            isSunset -> {
+                SunsetGlyph(modifier = Modifier.fillMaxSize())
+            }
+            condition == WeatherCondition.PartlyCloudy && !isNight -> {
+                Icon(
+                    imageVector = Icons.Rounded.WbSunny,
+                    contentDescription = null,
+                    tint = condition.accent(),
+                    modifier = Modifier
+                        .size(21.dp)
+                        .align(Alignment.Center),
+                )
+                Icon(
+                    imageVector = Icons.Rounded.Cloud,
+                    contentDescription = null,
+                    tint = Color(0xFFD7E5EC),
+                    modifier = Modifier
+                        .size(15.dp)
+                        .align(Alignment.BottomEnd),
+                )
+            }
+            condition == WeatherCondition.Clear && isNight -> {
+                Icon(
+                    imageVector = Icons.Rounded.ModeNight,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+            else -> {
+                Icon(
+                    imageVector = condition.icon(),
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SunsetGlyph(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val horizonY = size.height * 0.66f
+        val sunRadius = size.minDimension * 0.24f
+        val sunCenter = Offset(size.width * 0.5f, horizonY - sunRadius * 0.35f)
+        val rayColor = ColorTertiary.copy(alpha = 0.62f)
+
+        repeat(7) { index ->
+            val angle = Math.toRadians(205.0 + index * 21.5)
+            val inner = sunRadius * 1.55f
+            val outer = sunRadius * 2.05f
+            drawLine(
+                color = rayColor,
+                start = Offset(
+                    x = sunCenter.x + kotlin.math.cos(angle).toFloat() * inner,
+                    y = sunCenter.y + kotlin.math.sin(angle).toFloat() * inner,
+                ),
+                end = Offset(
+                    x = sunCenter.x + kotlin.math.cos(angle).toFloat() * outer,
+                    y = sunCenter.y + kotlin.math.sin(angle).toFloat() * outer,
+                ),
+                strokeWidth = 1.6.dp.toPx(),
+                cap = StrokeCap.Round,
+            )
+        }
+
+        drawCircle(
+            color = ColorTertiary,
+            radius = sunRadius,
+            center = sunCenter,
+        )
+        drawLine(
+            color = ColorOnSurfaceVariant.copy(alpha = 0.72f),
+            start = Offset(size.width * 0.12f, horizonY),
+            end = Offset(size.width * 0.88f, horizonY),
+            strokeWidth = 1.8.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
     }
 }
 
@@ -1563,7 +1641,7 @@ private fun SevenDayRow(
             )
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1584,21 +1662,29 @@ private fun SevenDayRow(
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = "${day.highC}°",
-                        modifier = Modifier.width(32.dp),
+                        modifier = Modifier.width(40.dp),
                         color = ColorOnSurface,
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Clip,
+                        textAlign = TextAlign.End,
                     )
                     RangeBar(startFraction = startFraction, endFraction = endFraction)
                     Text(
                         text = "${day.lowC}°",
-                        modifier = Modifier.width(32.dp),
+                        modifier = Modifier.width(40.dp),
                         color = ColorOnSurfaceVariant,
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Light),
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Clip,
+                        textAlign = TextAlign.End,
                     )
                 }
             }
@@ -1608,9 +1694,11 @@ private fun SevenDayRow(
 
 @Composable
 private fun RangeBar(startFraction: Float, endFraction: Float) {
+    val barWidth = 88.dp
+
     Box(
         modifier = Modifier
-            .width(96.dp)
+            .width(barWidth)
             .height(4.dp)
             .clip(CircleShape)
             .background(Color.White.copy(alpha = 0.10f)),
@@ -1618,12 +1706,12 @@ private fun RangeBar(startFraction: Float, endFraction: Float) {
         Box(
             modifier = Modifier
                 .fillMaxWidth(endFraction.coerceIn(0f, 1f))
-                .padding(start = (96.dp * startFraction.coerceIn(0f, 1f))),
+                .padding(start = (barWidth * startFraction.coerceIn(0f, 1f))),
         )
         Box(
             modifier = Modifier
-                .offset(x = 96.dp * startFraction.coerceIn(0f, 1f))
-                .width((96.dp * (endFraction - startFraction).coerceAtLeast(0.05f)))
+                .offset(x = barWidth * startFraction.coerceIn(0f, 1f))
+                .width((barWidth * (endFraction - startFraction).coerceAtLeast(0.05f)))
                 .height(4.dp)
                 .clip(CircleShape)
                 .background(
