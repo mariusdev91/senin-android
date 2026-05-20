@@ -41,10 +41,12 @@ import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.ModeNight
 import androidx.compose.material.icons.rounded.MyLocation
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Thunderstorm
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.WbSunny
@@ -125,6 +127,29 @@ private val Danger = Color(0xFFFF716C)
 private val TextPrimary = ColorOnSurface
 private val TextSecondary = Color(0xFFD7E5EC)
 private val TextMuted = ColorOnSurfaceVariant
+
+private enum class WeatherIconKind {
+    ClearDay,
+    ClearNight,
+    PartlyCloudyDay,
+    PartlyCloudyNight,
+    Cloudy,
+    LightRain,
+    Rain,
+    Thunderstorm,
+    Snow,
+    Fog,
+    Wind,
+    Humidity,
+    Thermostat,
+    Pressure,
+    Sunrise,
+    Sunset,
+    UvIndex,
+    Location,
+    Refresh,
+    WeatherAlert,
+}
 
 @Composable
 fun HomeScreen(
@@ -558,10 +583,9 @@ private fun ForecastTopBar(
                         )
                     }
                 }
-                Icon(
-                    imageVector = current?.condition?.icon() ?: Icons.Rounded.Cloud,
+                AppWeatherIcon(
+                    kind = current?.condition?.iconKind(isNight = false) ?: WeatherIconKind.Cloudy,
                     contentDescription = null,
-                    tint = current?.condition?.accent() ?: ColorPrimary,
                     modifier = Modifier.size(26.dp),
                 )
             }
@@ -609,10 +633,9 @@ private fun CurrentLocationActionCard(
                             color = ColorPrimary,
                         )
                     } else {
-                        Icon(
-                            imageVector = Icons.Rounded.MyLocation,
+                        AppWeatherIcon(
+                            kind = WeatherIconKind.Location,
                             contentDescription = strings.useCurrentLocation,
-                            tint = ColorPrimary,
                             modifier = Modifier.size(22.dp),
                         )
                     }
@@ -891,11 +914,11 @@ private fun SavedLocationGlassCard(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.MyLocation,
+                                        AppWeatherIcon(
+                                            kind = WeatherIconKind.Location,
                                             contentDescription = null,
-                                            tint = ColorOnSurfaceVariant,
                                             modifier = Modifier.size(16.dp),
+                                            muted = true,
                                         )
                                     }
                                     Text(
@@ -932,10 +955,9 @@ private fun SavedLocationGlassCard(
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(
-                                imageVector = (preview?.condition ?: WeatherCondition.Cloudy).icon(),
+                            AppWeatherIcon(
+                                kind = (preview?.condition ?: WeatherCondition.Cloudy).iconKind(isNight = false),
                                 contentDescription = null,
-                                tint = (preview?.condition ?: WeatherCondition.Cloudy).accent(),
                                 modifier = Modifier.size(38.dp),
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -964,11 +986,11 @@ private fun SavedLocationGlassCard(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.MyLocation,
+                                    AppWeatherIcon(
+                                        kind = WeatherIconKind.Location,
                                         contentDescription = null,
-                                        tint = ColorOnSurfaceVariant,
                                         modifier = Modifier.size(16.dp),
+                                        muted = true,
                                     )
                                 }
                                 Text(
@@ -995,10 +1017,9 @@ private fun SavedLocationGlassCard(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(
-                                imageVector = (preview?.condition ?: WeatherCondition.Cloudy).icon(),
+                            AppWeatherIcon(
+                                kind = (preview?.condition ?: WeatherCondition.Cloudy).iconKind(isNight = false),
                                 contentDescription = null,
-                                tint = (preview?.condition ?: WeatherCondition.Cloudy).accent(),
                                 modifier = Modifier.size(38.dp),
                             )
                             Text(
@@ -1395,52 +1416,143 @@ private fun WeatherGlyph(
     isHighlighted: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val accent = when {
-        isHighlighted -> ColorTertiary
-        isSunset -> ColorOnSurfaceVariant
-        condition == WeatherCondition.Clear && isNight -> Color(0xFFDDE6F7)
-        else -> condition.accent()
-    }
+    AppWeatherIcon(
+        kind = if (isSunset) WeatherIconKind.Sunset else condition.iconKind(isNight),
+        contentDescription = null,
+        modifier = modifier,
+        muted = !isHighlighted && isNight,
+    )
+}
+
+@Composable
+private fun AppWeatherIcon(
+    kind: WeatherIconKind,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    muted: Boolean = false,
+) {
+    val tint = if (muted) kind.mutedColor() else kind.color()
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        when {
-            isSunset -> {
-                SunsetGlyph(modifier = Modifier.fillMaxSize())
-            }
-            condition == WeatherCondition.PartlyCloudy && !isNight -> {
+        when (kind) {
+            WeatherIconKind.PartlyCloudyDay -> {
                 Icon(
                     imageVector = Icons.Rounded.WbSunny,
-                    contentDescription = null,
-                    tint = condition.accent(),
+                    contentDescription = contentDescription,
+                    tint = WeatherIconKind.ClearDay.color(),
                     modifier = Modifier
-                        .size(21.dp)
-                        .align(Alignment.Center),
+                        .fillMaxSize(0.86f)
+                        .align(Alignment.CenterStart),
                 )
                 Icon(
                     imageVector = Icons.Rounded.Cloud,
                     contentDescription = null,
-                    tint = Color(0xFFD7E5EC),
+                    tint = WeatherIconKind.Cloudy.color(),
                     modifier = Modifier
-                        .size(15.dp)
+                        .fillMaxSize(0.64f)
                         .align(Alignment.BottomEnd),
                 )
             }
-            condition == WeatherCondition.Clear && isNight -> {
+
+            WeatherIconKind.PartlyCloudyNight -> {
                 Icon(
                     imageVector = Icons.Rounded.ModeNight,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.fillMaxSize(),
+                    contentDescription = contentDescription,
+                    tint = WeatherIconKind.ClearNight.color(),
+                    modifier = Modifier
+                        .fillMaxSize(0.84f)
+                        .align(Alignment.CenterStart),
                 )
-            }
-            else -> {
                 Icon(
-                    imageVector = condition.icon(),
+                    imageVector = Icons.Rounded.Cloud,
                     contentDescription = null,
-                    tint = accent,
+                    tint = WeatherIconKind.Cloudy.color(),
+                    modifier = Modifier
+                        .fillMaxSize(0.64f)
+                        .align(Alignment.BottomEnd),
+                )
+            }
+
+            WeatherIconKind.Sunset -> SunsetGlyph(modifier = Modifier.fillMaxSize())
+            WeatherIconKind.Sunrise -> SunriseGlyph(modifier = Modifier.fillMaxSize())
+            WeatherIconKind.Fog -> FogGlyph(color = tint, modifier = Modifier.fillMaxSize())
+
+            WeatherIconKind.ClearDay,
+            WeatherIconKind.ClearNight,
+            WeatherIconKind.Cloudy,
+            WeatherIconKind.LightRain,
+            WeatherIconKind.Rain,
+            WeatherIconKind.Thunderstorm,
+            WeatherIconKind.Snow,
+            WeatherIconKind.Wind,
+            WeatherIconKind.Humidity,
+            WeatherIconKind.Thermostat,
+            WeatherIconKind.Pressure,
+            WeatherIconKind.UvIndex,
+            WeatherIconKind.Location,
+            WeatherIconKind.Refresh,
+            WeatherIconKind.WeatherAlert -> {
+                Icon(
+                    imageVector = when (kind) {
+                        WeatherIconKind.ClearDay -> Icons.Rounded.WbSunny
+                        WeatherIconKind.ClearNight -> Icons.Rounded.ModeNight
+                        WeatherIconKind.Cloudy -> Icons.Rounded.Cloud
+                        WeatherIconKind.LightRain -> Icons.Rounded.Grain
+                        WeatherIconKind.Rain -> Icons.Rounded.Grain
+                        WeatherIconKind.Thunderstorm -> Icons.Rounded.Thunderstorm
+                        WeatherIconKind.Snow -> Icons.Rounded.Grain
+                        WeatherIconKind.Wind -> Icons.Rounded.Air
+                        WeatherIconKind.Humidity -> Icons.Rounded.WaterDrop
+                        WeatherIconKind.Thermostat -> Icons.Rounded.Speed
+                        WeatherIconKind.Pressure -> Icons.Rounded.Speed
+                        WeatherIconKind.UvIndex -> Icons.Rounded.WbSunny
+                        WeatherIconKind.Location -> Icons.Rounded.MyLocation
+                        WeatherIconKind.Refresh -> Icons.Rounded.Refresh
+                        WeatherIconKind.WeatherAlert -> Icons.Rounded.WarningAmber
+                    },
+                    contentDescription = contentDescription,
+                    tint = tint,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SunriseGlyph(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val horizonY = size.height * 0.66f
+        val sunRadius = size.minDimension * 0.23f
+        val sunCenter = Offset(size.width * 0.5f, horizonY - sunRadius * 0.1f)
+        drawCircle(
+            color = ColorTertiary,
+            radius = sunRadius,
+            center = sunCenter,
+        )
+        drawLine(
+            color = ColorPrimary.copy(alpha = 0.72f),
+            start = Offset(size.width * 0.12f, horizonY),
+            end = Offset(size.width * 0.88f, horizonY),
+            strokeWidth = 1.8.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun FogGlyph(color: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = 1.8.dp.toPx()
+        listOf(0.35f, 0.52f, 0.69f).forEachIndexed { index, yFraction ->
+            val inset = if (index == 1) 0.08f else 0.18f
+            drawLine(
+                color = color.copy(alpha = if (index == 1) 0.95f else 0.72f),
+                start = Offset(size.width * inset, size.height * yFraction),
+                end = Offset(size.width * (1f - inset), size.height * yFraction),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
+            )
         }
     }
 }
@@ -1485,6 +1597,53 @@ private fun SunsetGlyph(modifier: Modifier = Modifier) {
             cap = StrokeCap.Round,
         )
     }
+}
+
+private fun WeatherCondition.iconKind(isNight: Boolean): WeatherIconKind = when (this) {
+    WeatherCondition.Clear -> if (isNight) WeatherIconKind.ClearNight else WeatherIconKind.ClearDay
+    WeatherCondition.PartlyCloudy -> if (isNight) WeatherIconKind.PartlyCloudyNight else WeatherIconKind.PartlyCloudyDay
+    WeatherCondition.Cloudy -> WeatherIconKind.Cloudy
+    WeatherCondition.Rain -> WeatherIconKind.Rain
+    WeatherCondition.Thunderstorm -> WeatherIconKind.Thunderstorm
+    WeatherCondition.Snow -> WeatherIconKind.Snow
+    WeatherCondition.Mist -> WeatherIconKind.Fog
+}
+
+private fun WeatherIconKind.color(): Color = when (this) {
+    WeatherIconKind.ClearDay -> Warm
+    WeatherIconKind.ClearNight -> Color(0xFFDDE6F7)
+    WeatherIconKind.PartlyCloudyDay -> Color(0xFFFFD37A)
+    WeatherIconKind.PartlyCloudyNight -> Color(0xFFDDE6F7)
+    WeatherIconKind.Cloudy -> Color(0xFFD7E5EC)
+    WeatherIconKind.LightRain -> Color(0xFF93B7E8)
+    WeatherIconKind.Rain -> Cool
+    WeatherIconKind.Thunderstorm -> Danger
+    WeatherIconKind.Snow -> Color(0xFFF0FBFF)
+    WeatherIconKind.Fog -> Color(0xFFAAABAF)
+    WeatherIconKind.Wind -> Color(0xFFD7E5EC)
+    WeatherIconKind.Humidity -> Cool
+    WeatherIconKind.Thermostat -> Warm
+    WeatherIconKind.Pressure -> ColorOnSurfaceVariant
+    WeatherIconKind.Sunrise -> ColorTertiary
+    WeatherIconKind.Sunset -> ColorTertiary
+    WeatherIconKind.UvIndex -> ColorTertiary
+    WeatherIconKind.Location -> ColorPrimary
+    WeatherIconKind.Refresh -> ColorPrimary
+    WeatherIconKind.WeatherAlert -> Danger
+}
+
+private fun WeatherIconKind.mutedColor(): Color = when (this) {
+    WeatherIconKind.ClearDay -> Color(0xFFDFAF63)
+    WeatherIconKind.ClearNight -> Color(0xFFC9D7DE)
+    WeatherIconKind.PartlyCloudyDay -> Color(0xFFD1BE8E)
+    WeatherIconKind.PartlyCloudyNight -> Color(0xFFC9D7DE)
+    WeatherIconKind.Cloudy -> Color(0xFFB7C4CB)
+    WeatherIconKind.LightRain -> Color(0xFF93B7E8)
+    WeatherIconKind.Rain -> Color(0xFF93B7E8)
+    WeatherIconKind.Thunderstorm -> Color(0xFFD59090)
+    WeatherIconKind.Snow -> Color(0xFFE5EEF6)
+    WeatherIconKind.Fog -> Color(0xFFB1B5BB)
+    else -> color().copy(alpha = 0.76f)
 }
 
 @Composable
@@ -1571,14 +1730,14 @@ private fun HourlyCapsule(
         ) {
             Text(
                 text = if (isActive) strings.now else hour.timeLabel,
-                color = if (isActive) hour.condition.accent() else ColorOnSurfaceVariant,
+                color = if (isActive) hour.condition.iconKind(isNight = false).color() else ColorOnSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
             )
-            Icon(
-                imageVector = hour.condition.icon(),
+            AppWeatherIcon(
+                kind = hour.condition.iconKind(isNight = hour.dateTime.hour >= 21 || hour.dateTime.hour < 6),
                 contentDescription = null,
-                tint = if (isActive) hour.condition.accent() else hour.condition.mutedAccent(),
                 modifier = Modifier.size(24.dp),
+                muted = !isActive,
             )
             Text(
                 text = "${hour.temperatureC}°",
@@ -1645,15 +1804,14 @@ private fun SevenDayRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = day.condition.icon(),
+                    AppWeatherIcon(
+                        kind = day.condition.iconKind(isNight = false),
                         contentDescription = null,
-                        tint = day.condition.accent(),
                         modifier = Modifier.size(24.dp),
                     )
                     Text(
                         text = if (day.precipitationChance > 0) "${day.precipitationChance}%" else "0%",
-                        color = if (day.precipitationChance > 0) Color(0xFF72A1EE) else Color.Transparent,
+                        color = if (day.precipitationChance > 0) WeatherIconKind.Rain.mutedColor() else Color.Transparent,
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -1732,14 +1890,14 @@ private fun ForecastBentoDetails(
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         ForecastDetailCard(
             modifier = Modifier.weight(1f),
-            icon = Icons.Rounded.WaterDrop,
+            icon = WeatherIconKind.Humidity,
             title = strings.humidity,
             value = "${current.humidity}%",
             subtitle = strings.dewPointLabel(humidityDewPoint(current)),
         )
         ForecastDetailCard(
             modifier = Modifier.weight(1f),
-            icon = Icons.Rounded.Air,
+            icon = WeatherIconKind.Wind,
             title = strings.wind,
             value = "${details.windKph}",
             suffix = " km/h",
@@ -1751,7 +1909,7 @@ private fun ForecastBentoDetails(
 @Composable
 private fun ForecastDetailCard(
     modifier: Modifier,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: WeatherIconKind,
     title: String,
     value: String,
     subtitle: String,
@@ -1767,11 +1925,11 @@ private fun ForecastDetailCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = icon,
+                AppWeatherIcon(
+                    kind = icon,
                     contentDescription = null,
-                    tint = ColorOnSurfaceVariant,
                     modifier = Modifier.size(16.dp),
+                    muted = true,
                 )
                 Text(
                     text = title.uppercase(),
@@ -1932,7 +2090,7 @@ private fun HourlyTimeline(hourly: List<HourlyForecast>) {
                             modifier = Modifier
                                 .size(12.dp)
                                 .clip(CircleShape)
-                                .background(hour.condition.accent()),
+                                .background(hour.condition.iconKind(isNight = hour.dateTime.hour >= 21 || hour.dateTime.hour < 6).color()),
                         )
                         if (index < 9) {
                             Spacer(
@@ -2134,10 +2292,10 @@ private fun AirQualityCard(airQuality: AirQuality) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Air,
+                    AppWeatherIcon(
+                        kind = WeatherIconKind.Wind,
                         contentDescription = null,
-                        tint = ColorPrimary,
+                        modifier = Modifier.size(20.dp),
                     )
                     Text(
                         text = strings.airQuality,
@@ -2220,11 +2378,11 @@ private fun SunCard(schedule: SunSchedule) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.WbSunny,
+                AppWeatherIcon(
+                    kind = WeatherIconKind.Sunrise,
                     contentDescription = null,
-                    tint = TextPrimary.copy(alpha = 0.7f),
                     modifier = Modifier.size(18.dp),
+                    muted = true,
                 )
                 Text(
                     text = strings.daylight,
@@ -2357,17 +2515,17 @@ private fun PrimaryMetricsGrid(details: WeatherDetails) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             DetailMetricCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Rounded.Air,
+                icon = WeatherIconKind.Wind,
                 title = strings.wind,
                 value = details.windKph.toString(),
                 unit = "km/h",
                 caption = details.windDirectionLabel,
-                accentIcon = Icons.Rounded.LocationOn,
+                accentIcon = WeatherIconKind.Location,
                 accentText = details.windDirectionLabel,
             )
             DetailMetricCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Rounded.WaterDrop,
+                icon = WeatherIconKind.Rain,
                 title = strings.rainfall,
                 value = details.precipitationChance.toString(),
                 unit = "%",
@@ -2377,7 +2535,7 @@ private fun PrimaryMetricsGrid(details: WeatherDetails) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             DetailMetricCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Rounded.Visibility,
+                icon = WeatherIconKind.Fog,
                 title = strings.visibility,
                 value = details.visibilityKm.toString(),
                 unit = "km",
@@ -2386,7 +2544,7 @@ private fun PrimaryMetricsGrid(details: WeatherDetails) {
             )
             DetailMetricCard(
                 modifier = Modifier.weight(1f),
-                icon = Icons.Rounded.Speed,
+                icon = WeatherIconKind.Pressure,
                 title = strings.pressure,
                 value = details.pressureHpa.toString(),
                 unit = "hPa",
@@ -2402,7 +2560,7 @@ private fun BonusMetricsGrid(details: WeatherDetails, current: CurrentWeather) {
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         DetailMetricCard(
             modifier = Modifier.weight(1f),
-            icon = Icons.Rounded.WaterDrop,
+            icon = WeatherIconKind.Humidity,
             title = strings.humidity,
             value = details.humidity.toString(),
             unit = "%",
@@ -2410,7 +2568,7 @@ private fun BonusMetricsGrid(details: WeatherDetails, current: CurrentWeather) {
         )
         DetailMetricCard(
             modifier = Modifier.weight(1f),
-            icon = Icons.Rounded.WbSunny,
+            icon = WeatherIconKind.UvIndex,
             title = strings.uvIndex,
             value = details.uvIndex.toString(),
             unit = strings.uvLabel(details.uvIndex),
@@ -2422,12 +2580,12 @@ private fun BonusMetricsGrid(details: WeatherDetails, current: CurrentWeather) {
 @Composable
 private fun DetailMetricCard(
     modifier: Modifier,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: WeatherIconKind,
     title: String,
     value: String,
     unit: String,
     caption: String,
-    accentIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    accentIcon: WeatherIconKind? = null,
     accentText: String? = null,
     captionColor: Color = TextPrimary,
 ) {
@@ -2437,11 +2595,11 @@ private fun DetailMetricCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = icon,
+                AppWeatherIcon(
+                    kind = icon,
                     contentDescription = null,
-                    tint = TextPrimary.copy(alpha = 0.7f),
                     modifier = Modifier.size(16.dp),
+                    muted = true,
                 )
                 Text(
                     text = title,
@@ -2470,10 +2628,9 @@ private fun DetailMetricCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = accentIcon,
+                    AppWeatherIcon(
+                        kind = accentIcon,
                         contentDescription = null,
-                        tint = ColorPrimary,
                         modifier = Modifier.size(14.dp),
                     )
                     Text(
@@ -2784,12 +2941,11 @@ private fun ConditionBadge(
             modifier = Modifier
                 .size((iconSize.value * 1.9f).dp)
                 .clip(CircleShape)
-                .background(condition.accent().copy(alpha = 0.12f)),
+                .background(condition.iconKind(isNight = false).color().copy(alpha = 0.12f)),
         )
-        Icon(
-            imageVector = condition.icon(),
+        AppWeatherIcon(
+            kind = condition.iconKind(isNight = false),
             contentDescription = strings.localizedCondition(condition),
-            tint = condition.accent(),
             modifier = Modifier.size(iconSize),
         )
     }
@@ -2946,36 +3102,6 @@ private fun WeatherCondition.label(): String = when (this) {
     WeatherCondition.Thunderstorm -> "Furtuna"
     WeatherCondition.Snow -> "Ninsoare"
     WeatherCondition.Mist -> "Ceata"
-}
-
-private fun WeatherCondition.icon() = when (this) {
-    WeatherCondition.Clear -> Icons.Rounded.WbSunny
-    WeatherCondition.PartlyCloudy -> Icons.Rounded.WbSunny
-    WeatherCondition.Cloudy -> Icons.Rounded.Cloud
-    WeatherCondition.Rain -> Icons.Rounded.Grain
-    WeatherCondition.Thunderstorm -> Icons.Rounded.Thunderstorm
-    WeatherCondition.Snow -> Icons.Rounded.Grain
-    WeatherCondition.Mist -> Icons.Rounded.ModeNight
-}
-
-private fun WeatherCondition.accent(): Color = when (this) {
-    WeatherCondition.Clear -> Warm
-    WeatherCondition.PartlyCloudy -> Color(0xFFFFD37A)
-    WeatherCondition.Cloudy -> Color(0xFFD7E5EC)
-    WeatherCondition.Rain -> Cool
-    WeatherCondition.Thunderstorm -> Danger
-    WeatherCondition.Snow -> Color(0xFFF0FBFF)
-    WeatherCondition.Mist -> Color(0xFFAAABAF)
-}
-
-private fun WeatherCondition.mutedAccent(): Color = when (this) {
-    WeatherCondition.Clear -> Color(0xFFDFAF63)
-    WeatherCondition.PartlyCloudy -> Color(0xFFD1BE8E)
-    WeatherCondition.Cloudy -> Color(0xFFB7C4CB)
-    WeatherCondition.Rain -> Color(0xFF93B7E8)
-    WeatherCondition.Thunderstorm -> Color(0xFFD59090)
-    WeatherCondition.Snow -> Color(0xFFE5EEF6)
-    WeatherCondition.Mist -> Color(0xFFB1B5BB)
 }
 
 
